@@ -929,7 +929,7 @@ paths.qc_root = fullfile(paths.derivatives_root, 'qc');
 ensure_dir_impl(paths.qc_root);
 
 paths.qc_ica_training_root   = fullfile(paths.qc_root, '03_ica_training');
-paths.qc_break_crop_root     = fullfile(paths.qc_root, '03_break_crop');
+paths.qc_break_crop_root     = fullfile(paths.qc_root, '03_break_cropping');
 paths.qc_bad_chans_root      = fullfile(paths.qc_root, '03_bad_chans');
 paths.qc_ica_components_root = fullfile(paths.qc_root, '05_ica_comps');
 paths.qc_epoch_rej_root      = fullfile(paths.qc_root, '06_epoch_rej');
@@ -6524,7 +6524,7 @@ step_cfg.break_padding_sec = [0 0];
 step_cfg.break_on_validation_fail = "skip";
 
 % Write one short QC row per run when break cropping is enabled.
-step_cfg.write_break_crop_qc = true;
+step_cfg.write_break_cropping_qc = true;
 
 % Channel typing labels
 step_cfg.eog_channel_labels     = {'IO1','IO2','LO1','LO2'};
