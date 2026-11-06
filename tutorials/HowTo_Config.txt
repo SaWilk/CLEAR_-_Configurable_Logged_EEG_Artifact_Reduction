@@ -60,10 +60,71 @@ STEP 01: BIDS FORMATTING
 
 ------------------------------
 STEP 02: TRIGGERFIX
-- rename triggers/Events and (optionally) compare to behaviour events-log 
-- currently designed for fear conditioning paradigm
-- will be updated to be more generic
-- Details coming soon…
+Enable cfg.steps.prep_02_triggerfix.run in eeg_pipeline_config.m and edit
+the existing cfg.paradigms.myParadigm.triggerfix section. Step 02 reads BIDS
+BrainVision files using cfg.bids.task_label and cfg.bids.session_label by
+default. Override input_vhdr_pattern only if the filenames differ. If a session
+has several headers, allow_multiple_runs processes all of them. Otherwise
+multiple_vhdr_policy selects the most recent by default and also supports
+"first" and "error". Set use_explicit_chanlist to true to read only the channels
+in explicit_chanlist. The step saves *_triggersfixed.set files for Step 03.
+
+Enter the codes as they were recorded in raw_triggers. In blocking, give each
+trigger category a raw_key referring to one of those entries. The blocks list
+assigns a new code to successive occurrences in that category. For example,
+n=4 takes four occurrences and n=Inf takes the remainder. Use an empty code
+("") to count a block while keeping its original labels.
+
+Example without phases. Fill these fields to rename the first four occurrences
+of S 11 to S 111 and all later occurrences to S 112.
+
+    cfg.paradigms.myParadigm.triggerfix.use_gating_from_start_markers = false;
+    cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawA = "S 11";
+    cfg.paradigms.myParadigm.triggerfix.blocking.categoryA.raw_key = "rawA";
+    cfg.paradigms.myParadigm.triggerfix.blocking.categoryA.blocks = { ...
+        struct('n', 4, 'code', "S 111"), struct('n', Inf, 'code', "S 112")};
+
+Example with phases. Give each phase its own start marker. All category counts
+restart at every observed marker. Phase and category names are MATLAB struct
+field names and must match across settings. Use .code for one label or
+.blocks for a list of blocks in a phase. Categories without a phase override
+use the blocks defined under blocking.
+
+    cfg.paradigms.myParadigm.triggerfix.use_gating_from_start_markers = true;
+    cfg.paradigms.myParadigm.triggerfix.gates.start_markers = ...
+        struct('phase1', "S 81", 'phase2', "S 82");
+    cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawA = "S 31";
+    cfg.paradigms.myParadigm.triggerfix.blocking.categoryA.raw_key = "rawA";
+    cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming = true;
+    cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase1.categoryA.blocks = { ...
+        struct('n', 2, 'code', "S 311"), struct('n', Inf, 'code', "S 312")};
+    cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryA.blocks = { ...
+        struct('n', 1, 'code', "S 313"), struct('n', 1, 'code', "S 314"), ...
+        struct('n', Inf, 'code', "S 315")};
+    cfg.paradigms.myParadigm.triggerfix.phase_strategy = "trigger_only";
+
+Choose phase_strategy when using phase starts. "trigger_only" skips a run when
+phase QA fails. "block_only" counts blocks within observed boundaries without
+phase QA. The default "trigger_then_block_fallback" tries phase QA and uses
+block counting within observed boundaries on failure. With
+trigger_phase_min_start_markers = [], QA requires each configured start marker.
+A numeric value counts all observed occurrences. For a single phase using QA,
+set trigger_phase_min_phases_with_remaps to 1 and trigger_phase_max_phase_share
+to 1. The other QA limits are listed in the config.
+
+To replace selected early trials after phased remapping, enable
+enable_first_match_replacements and add first_match_replacements entries with
+match_code, replace_code and optionally max_replacements (default 1). The
+match_code_key and replace_code_key options look up codes in raw_triggers. Use
+a replacement code outside the Step 06 epoch list to exclude the trial from
+epoching.
+The old triggerfix.rules option raises a configuration error.
+
+For RTGMN/CF-style behavior logs, the optional run_raw_order_qc compares raw
+trigger order against the log. Configure behavior_log_map, the log columns and
+the tokens to compare. Set run_raw_order_qc to false if you only need renaming.
+Run a representative subject and check the log and output event labels before
+running the batch.
 
 ------------------------------
 STEP 03: UNTIL ICA --> main preprocessing step: filters, detects and interpolates bad channels in preparation for ICA

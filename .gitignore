@@ -1,7 +1,6 @@
 /logs/*
 *.asv
 eeg_pipeline_config_PROOF.m
-eeg_pipeline_config_PROOF.m
 tests/bad_channel_per_subject.csv
 tests/bad_channel_frequency.csv
 eeg_pipeline_config_baseline.m

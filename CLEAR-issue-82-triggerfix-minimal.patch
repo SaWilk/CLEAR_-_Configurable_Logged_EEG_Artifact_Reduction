@@ -1,0 +1,616 @@
+diff --git a/eeg_pipeline_config.m b/eeg_pipeline_config.m
+index bb23d1aa6a73523d6dbdcaf5ade0b04f8b9596ac..1e1a5c4adc625ee6b79e090a549760058b4a970d 100644
+--- a/eeg_pipeline_config.m
++++ b/eeg_pipeline_config.m
+@@ -359,7 +359,7 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in
+ %    - blocking.count_scope = "global"
+ %    - fill triggerfix.blocking.category to rename triggers
+ %    - set enable_first_match_replacements = false
+-%    - phase_strategy as trigger_only (or block_only)
++%    - phase_strategy applies only with configured phase start markers
+ %    - phase-specific renaming empty
+ %
+ % B) PARADIGM WITH PHASES
+@@ -368,22 +368,19 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in
+ %       markers, e.g. 'phase1',    "S 92", ...
+ %    - name triggers per category
+ %    - blocking.count_scope = "phase"
+-%    - adjust triggerfix.blocking.category to the right number of
+-%      categories but leave new trigger names empty
++%    - define each category in blocking and optionally override its blocks
++%      for individual phases in phase_specific_trigger_renaming_rules
+ %    - optional: enable_first_match_replacements = true, and set
+ %      first_match_replacements to correct phase-specific trigger
+ %    - phase_strategy "trigger_then_block_fallback"
+-%    - enter phase-specific new codes   
++%    - see tutorials/HowTo_Config.txt for both setups
+ 
+ 
+ cfg.paradigms.myParadigm.triggerfix = struct();
+ 
+ % cfg.steps.prep_02_triggerfix.run_raw_order_qc = false; 
+-% %find behavior log file (only if you want to use RAW QC triggerfix --> DO NOT USE at the moment)
+-% %if false skip Raw QC block and go on with 1) Phases
+-% 
+-% %%% RAW QC Trigger from Behavior files 
+-% % (WARNING: structure implemented, but not running yet, DO NOT USE)
++% Optional behavior-log QC for RTGMN/CF-style logs. The runtime default is
++% true. Set false to skip the comparison. The loader expects a Time column.
+ % cfg.paradigms.myParadigm.triggerfix.run_raw_order_qc = false;
+ % 
+ % %Enter column labels from behavioral data sets
+@@ -404,7 +401,7 @@ cfg.paradigms.myParadigm.triggerfix = struct();
+ % };
+ % 
+ % cfg.paradigms.myParadigm.triggerfix.allow_multiple_runs = false;
+-% cfg.paradigms.myParadigm.triggerfix.multiple_vhdr_policy = " "; % most_recent
++% cfg.paradigms.myParadigm.triggerfix.multiple_vhdr_policy = "most_recent"; % Also supports "first" and "error"
+ % cfg.paradigms.myParadigm.triggerfix.input_vhdr_pattern = "";  
+ % cfg.paradigms.myParadigm.triggerfix.use_explicit_chanlist = false;
+ % cfg.paradigms.myParadigm.triggerfix.explicit_chanlist = 1:66;
+@@ -416,6 +413,9 @@ cfg.paradigms.myParadigm.triggerfix = struct();
+ % %%% optional output QC override
+ % cfg.paradigms.myParadigm.triggerfix.qc_out_dir = "";
+ 
++% cfg.paradigms.myParadigm.triggerfix.log_summary_only = true;
++% cfg.prep_02.use_behavior_for_trigger_strategy = true; % Log a warning if behavior QC finds a mismatch
++
+ %%% 1) Phases: Enter start markers for your phases if use_gating_from_start_markers = true
+ 
+ cfg.paradigms.myParadigm.triggerfix.use_gating_from_start_markers = false; % true if there are phases, false if there are no phases in your paradigm
+@@ -475,24 +475,23 @@ cfg.paradigms.myParadigm.triggerfix.enable_first_match_replacements = false; %tr
+ %false if the same renaming rule applies for all triggers of the same category within a phase
+ %false if paradigm without phases
+ 
++% Use match_code_key / replace_code_key to refer to entries in raw_triggers.
+ cfg.paradigms.myParadigm.triggerfix.first_match_replacements = {
+     struct('match_code'," ", 'replace_code'," ",    'max_replacements',1),
+     struct('match_code'," ", 'replace_code'," ",'max_replacements',1)
+ };
+ 
+ cfg.paradigms.myParadigm.triggerfix.phase_strategy = " "; 
+-%"trigger_only" remapping only following start trigger; useful if triggers
+-%have already been checked or corrected before pipeline
+-%"block_only" remapping following counting within blocks; useful if
+-% start triggers are missing
+-% "trigger_then_block_fallback" remapping following start triggers, if less
+-% than min_remap switch to block counting; can also be used for paradigms
+-% without phases
++% "trigger_only" uses phase starts and skips runs that fail phase QA.
++% "block_only" counts within observed phases without phase QA.
++% "trigger_then_block_fallback" (default) tries phase QA first and falls back
++% to block counting within observed phase boundaries.
+ 
+ %%% 4) Phase-specific trigger renaming 
+ cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming = false; 
+ 
+-% Enter new codes after renaming per phase and category
++% Use .code for one label throughout a phase or .blocks for several blocks.
++% A phase-specific .blocks list takes precedence over .code and the category-wide blocks.
+ cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules = struct();
+ 
+ cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase1.categoryA.code = " ";
+@@ -505,8 +504,15 @@ cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2
+ cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryC.code = " ";
+ cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryD.code = " ";
+ 
++% Optional phase-specific block list using the same n/code format as blocking.
++% cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryA.blocks = ...
++%     {struct('n', 10, 'code', "S 201"), struct('n', Inf, 'code', "S 202")};
++
++% Phase QA applies to trigger_only and trigger_then_block_fallback.
++% [] expects each configured start marker. A number counts occurrences.
++cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_start_markers = [];
+ cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_remaps = 5; % minimal number of expected remaps in total
+-cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_phases_with_remaps = 2; %minimal number of extpected remaps per phase
++cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_phases_with_remaps = 2; % minimum number of phases with remaps
+ cfg.paradigms.myParadigm.triggerfix.trigger_phase_max_phase_share = 0.80; % max percentage of remaps in phase, if higher start triggers not plausible and fallback to blocks
+ 
+ 
+diff --git a/steps/eeg_pipeline_helpers.m b/steps/eeg_pipeline_helpers.m
+index 7f3e80eb10c8869da84ccbab4e2ec97714a4501c..e79a5aca465e7e63e5842c168204d85e88e7a79a 100644
+--- a/steps/eeg_pipeline_helpers.m
++++ b/steps/eeg_pipeline_helpers.m
+@@ -158,8 +158,7 @@ helpers.safe_rmdir                             = @safe_rmdir_impl;
+ helpers.write_ic_topography_pngs               = @write_ic_topography_pngs_impl;
+ helpers.merge_structs_recursive                = @merge_structs_recursive_impl;
+ 
+-%helpers.apply_triggerfix_rules_from_cfg_rules = @apply_triggerfix_rules_from_cfg_rules_impl;
+-%Rules not implemented in current config
++helpers.triggerfix_blocks_for_phase            = @triggerfix_blocks_for_phase_impl;
+ 
+ % -------------------------------------------------------------------------
+ % AMICA, ICA QC, and Step-05 ICLabel helper functions (Saskia branch)
+@@ -6723,135 +6722,22 @@ output_paths = {out_path};
+ end
+ 
+ % =========================================================================
+-% Triggerfix config translation 
++% Step 02 phase-specific block lists
+ % =========================================================================
+-% function step_cfg = apply_triggerfix_rules_from_cfg_rules_impl(step_cfg, rules)
+-% NOT IMPLEMENTED in current config options!
+-% % Translate paradigma triggerfix rules into the legacy Step02 step_cfg fields.
+-% % Expected rules format (from cfg.paradigms.<name>.triggerfix.rules):
+-% %   - table:
+-% %       struct('phase', 'habituation'|'generalization'|'return_of_fear',
+-% %              'match','table','raw_key', <raw_key>, 'target', <target_code>)
+-% %   - count_block:
+-% %       struct('phase','acquisition'|'extinction','match','count_block','raw_key', <raw_key>, ...)
+-% %   - disable_first_ext:
+-% %       struct('match','disable_first_ext', 'first_minus_code',..., 'first_plus_code',...,
+-% %              'revert_minus_raw_key','cs_minus', 'revert_plus_raw_key','cs_plus')
+-% %   - disable_first_acq:
+-% %       struct('match','disable_first_acq', 'first_minus_code',..., 'first_plus_code',...,
+-% %     s_code',..., 'disabled_plus_code',...)
+-% % NOTE:
+-% % This helper currently implements only the "table" and "count_block" rule types.
+-% 
+-%     if nargin < 2 || isempty(rules)
+-%         return;
+-%     end
+-% 
+-%     if isempty(step_cfg)
+-%         step_cfg = struct();
+-%     end
+-% 
+-%     % rules may be a cell array of structs or a struct array
+-%     if isstruct(rules) && ~iscell(rules)
+-%         rules = num2cell(rules);
+-%     end
+-% 
+-%     for r = 1:numel(rules)
+-%         rule = rules{r};
+-% 
+-%         match_type = "";
+-%         if isstruct(rule) && isfield(rule, 'match')
+-%             match_type = string(rule.match);
+-%         end
+-% 
+-%         if match_type == "table"
+-%             if isfield(rule,'phase') && isfield(rule,'raw_key') && isfield(rule,'target')
+-%                 phase   = string(rule.phase);
+-%                 raw_key = char(string(rule.raw_key));
+-%                 target  = char(string(rule.target));
+-% 
+-%                 phase_key = matlab.lang.makeValidName(lower(char(phase)));
+-% 
+-%                 if ~isfield(step_cfg,'table_maps') || ~isstruct(step_cfg.table_maps)
+-%                     step_cfg.table_maps = struct();
+-%                 end
+-% 
+-%                 map_in = {};
+-%                 if isfield(step_cfg.table_maps, char(phase_key))
+-%                     map_in = step_cfg.table_maps.(char(phase_key));
+-%                 end
+-% 
+-%                 step_cfg.table_maps.(char(phase_key)) = upsert_map_key_impl(map_in, raw_key, target);
+-%             end
+-% 
+-%         elseif match_type == "count_block"
+-%             if isfield(rule,'phase') && isfield(rule,'raw_key')
+-% 
+-%                 phase   = string(rule.phase);
+-%                 raw_key = char(string(rule.raw_key));
+-%                 phase_key = matlab.lang.makeValidName(lower(char(phase)));
+-% 
+-%                 if ~isfield(step_cfg,'count_blocks') || ~isstruct(step_cfg.count_blocks)
+-%                     step_cfg.count_blocks = struct();
+-%                 end
+-% 
+-%                 if ~isfield(step_cfg.count_blocks, char(phase_key)) || ...
+-%                         ~isstruct(step_cfg.count_blocks.(char(phase_key)))
+-%                     step_cfg.count_blocks.(char(phase_key)) = struct();
+-%                 end
+-% 
+-%                 cb = step_cfg.count_blocks.(char(phase_key));
+-% 
+-%                 % block sizes
+-%                 if isfield(rule,'n_first_block');  cb.n_first_block  = double(rule.n_first_block); end
+-%                 if isfield(rule,'n_second_block'); cb.n_second_block = double(rule.n_second_block); end
+-%                 if isfield(rule,'n_third_block');  cb.n_third_block  = double(rule.n_third_block); end
+-% 
+-%                 % targets (abhängig von raw_key: cs_minus/cs_plus)
+-%                 if isfield(rule,'target_first')
+-%                     if strcmp(raw_key,'cs_minus'); cb.code_minus_block1 = char(string(rule.target_first)); end
+-%                     if strcmp(raw_key,'cs_plus');  cb.code_plus_block1  = char(string(rule.target_first)); end
+-%                 end
+-%                 if isfield(rule,'target_second')
+-%                     if strcmp(raw_key,'cs_minus'); cb.code_minus_block2 = char(string(rule.target_second)); end
+-%                     if strcmp(raw_key,'cs_plus');  cb.code_plus_block2  = char(string(rule.target_second)); end
+-%                 end
+-%                 if isfield(rule,'target_third')
+-%                     if strcmp(raw_key,'cs_minus'); cb.code_minus_block3 = char(string(rule.target_third)); end
+-%                     if strcmp(raw_key,'cs_plus');  cb.code_plus_block3  = char(string(rule.target_third)); end
+-%                 end
+-% 
+-%                 cb.cs_minus_key = 'cs_minus';
+-%                 cb.cs_plus_key  = 'cs_plus';
+-% 
+-%                 step_cfg.count_blocks.(char(phase_key)) = cb;
+-%             end
+-%         end
+-%     end
+-% end
+-
+-function map_out = upsert_map_key_impl(map_in, raw_key, target_code)
+-% map_in is cell array: { 'cs_minus', "S 201"; ... } in Step02 defaults.
+-    map_out = map_in;
+-    key_str = string(raw_key);
+-    found = false;
+-
+-    if isempty(map_out)
+-        map_out = {char(key_str), string(target_code)};
+-        return;
+-    end
+-
+-    for i = 1:size(map_out, 1)
+-        if size(map_out,2) >= 2 && string(map_out{i,1}) == key_str
+-            map_out{i,2} = string(target_code);
+-            found = true;
+-            break;
+-        end
+-    end
++function blocks = triggerfix_blocks_for_phase_impl(category_cfg, step_cfg, phase, category)
++blocks = getfield_safe_impl(category_cfg, 'blocks', {});
++if isempty(phase) || ~getfield_safe_impl(step_cfg, 'phase_specific_trigger_renaming', false)
++    return;
++end
+ 
+-    if ~found
+-        map_out(end+1,:) = {char(key_str), string(target_code)};
+-    end
++rules = getfield_safe_impl(step_cfg, 'phase_specific_trigger_renaming_rules', struct());
++phase_rules = getfield_safe_impl(rules, phase, struct());
++rule = getfield_safe_impl(phase_rules, category, struct());
++if isfield(rule, 'blocks')
++    blocks = rule.blocks;
++elseif isfield(rule, 'code') && strlength(string(rule.code)) > 0
++    blocks = {struct('n', Inf, 'code', rule.code)};
++end
+ end
+ 
+ function t_s = convert_behavior_time_to_seconds_impl(time_raw, time_unit)
+diff --git a/steps/eeg_prep02_triggerfix.m b/steps/eeg_prep02_triggerfix.m
+index 21568fea3a615cc1f20b56c5d15e5cf9d3d74a6b..f3ba47eadaaf4b137acb35ad901db305bb6f6304 100644
+--- a/steps/eeg_prep02_triggerfix.m
++++ b/steps/eeg_prep02_triggerfix.m
+@@ -44,6 +44,10 @@ try
+         step_cfg = helpers.merge_structs_recursive(step_cfg, cfg.prep_02);
+     end
+ 
++    if isfield(step_cfg, 'rules')
++        error('Step 02: triggerfix.rules is unsupported.');
++    end
++
+     overwrite_mode = helpers.resolve_overwrite_mode(cfg, step_cfg.overwrite_mode);
+ 
+     % ---------------------------------------------------------------------
+@@ -158,9 +162,8 @@ try
+             end
+         end
+ 
+-        if isfield(tf, 'rules') && ~isempty(tf.rules)
+-            error(['Step 02: cfg.paradigms.<name>.triggerfix.rules is not supported/implemented. ' ...
+-           'Please remove cfg.paradigms.<name>.triggerfix.rules from your config.']);
++        if isfield(tf, 'rules')
++            error('Step 02: triggerfix.rules is unsupported.');
+         end
+ 
+         if isfield(tf, 'first_match_replacements')
+@@ -684,7 +687,8 @@ try
+                     end
+                     if hitPhase
+                         phase_start_seen_counts.(char(current_phase)) = phase_start_seen_counts.(char(current_phase)) + 1;
+-                    continue;
++                        cat_counter_phase_primary.(char(current_phase)) = struct();
++                        continue;
+                     end
+         
+                     % find matched category by raw token
+@@ -705,11 +709,7 @@ try
+         
+                     cat = char(matched_cat);
+         
+-                    if ~isfield(blocking, cat) || ~isfield(blocking.(cat),'blocks')
+-                        continue;
+-                    end
+-        
+-                    blocks = blocking.(cat).blocks;
++                    blocks = helpers.triggerfix_blocks_for_phase(blocking.(cat), step_cfg, char(current_phase), cat);
+                     if isempty(blocks); continue; end
+         
+                     if strlength(current_phase) == 0
+@@ -742,32 +742,10 @@ try
+                 break;
+             end
+         end
+-                   % Optional phase-specific renaming 
+-                    new_code_phase = "";  % always initialize for this event
+-                    
+-                    use_phase_specific = logical(getfield_default(step_cfg, ...
+-                        'phase_specific_trigger_renaming', false));
+-                    
+-                    if use_phase_specific
+-                        rules = step_cfg.phase_specific_trigger_renaming_rules;
+-                    
+-                        if isstruct(rules) && isfield(rules, phKey) && isfield(rules.(phKey), cat) && ...
+-                                isfield(rules.(phKey).(cat), 'code')
+-                            new_code_phase = rules.(phKey).(cat).code;
+-                        end
+-                    end
+-                                        
+-                    % Apply phase-specific override at final assignment
+-                    if strlength(string(new_code_phase)) > 0
+-                        final_code = new_code_phase;
+-                    else
+-                        final_code = new_code;
+-                    end
+-                    
+                     before = helpers.normalize_trigger_type(EEGp.event(x).type);
+ 
+-                    if strlength(string(final_code)) > 0
+-                        EEGp.event(x).type = char(string(final_code));
++                    if strlength(string(new_code)) > 0
++                        EEGp.event(x).type = char(string(new_code));
+                     else
+                         EEGp.event(x).type = current_type;
+                     end
+@@ -851,20 +829,18 @@ try
+                         end
+                         remap_counts_primary(key_ba) = remap_counts_primary(key_ba) + 1;
+                                             end
+-                        n_start_total = 0;
+-                        phase_keys = fieldnames(phase_start_seen_counts);
+-                        for kk = 1:numel(phase_keys)
+-                            n_start_total = n_start_total + double(phase_start_seen_counts.(phase_keys{kk}));
+-                        end
+-                        
+-                        phase_keys_with_remaps = fieldnames(n_remaps_primary_by_phase);
+-                        num_phases_with_remaps = numel(phase_keys_with_remaps);
+-                        
+-                        min_start_markers = double(step_cfg.trigger_phase_min_start_markers);
+-                        min_phases_remaps = double(step_cfg.trigger_phase_min_phases_with_remaps);
+-                        
+-                        
+                 end
++                    start_counts = cell2mat(struct2cell(phase_start_seen_counts));
++                    n_start_total = sum(start_counts);
++                    min_start_markers = double(step_cfg.trigger_phase_min_start_markers);
++                    if isempty(min_start_markers)
++                        starts_pass = all(start_counts > 0);
++                    else
++                        starts_pass = n_start_total >= min_start_markers;
++                    end
++                    num_phases_with_remaps = numel(fieldnames(n_remaps_primary_by_phase));
++                    min_phases_remaps = double(step_cfg.trigger_phase_min_phases_with_remaps);
++
+                     phaseKeysPrim = fieldnames(n_remaps_primary_by_phase_only);
+                     for kk = 1:numel(phaseKeysPrim)
+                         ph = phaseKeysPrim{kk};
+@@ -893,7 +869,7 @@ try
+                     n_remaps_primary_total, n_start_total, num_phases_with_remaps, dominant_share_max, max_phase_share);
+                     
+                     if n_remaps_primary_total >= trigger_phase_min_remaps && ...
+-                       n_start_total >= min_start_markers && ...
++                       starts_pass && ...
+                        num_phases_with_remaps >= min_phases_remaps && ...
+                        max_phase_share <= dominant_share_max
+                         trigger_primary_ok = true;
+@@ -967,7 +943,8 @@ end
+                     end
+                     if hitPhase
+                         phase_start_seen_counts.(char(current_phase)) = phase_start_seen_counts.(char(current_phase)) + 1;
+-                    continue;
++                        cat_counter_phase.(char(current_phase)) = struct();
++                        continue;
+                     end
+                 end
+         
+@@ -989,11 +966,7 @@ end
+         
+                 cat = char(matched_cat);
+         
+-                if ~isfield(blocking, cat) || ~isfield(blocking.(cat),'blocks')
+-                    continue;
+-                end
+-        
+-                blocks = blocking.(cat).blocks;
++                blocks = helpers.triggerfix_blocks_for_phase(blocking.(cat), step_cfg, char(current_phase), cat);
+                 if isempty(blocks); continue; end
+         
+                 % counter
+@@ -1051,31 +1024,10 @@ end
+             end
+         end
+         
+-        % Apply phase-specific renaming override (same semantics as PRIMARY)
+-        new_code_phase = "";  % default: no override
+-        use_phase_specific = logical(getfield_default(step_cfg, ...
+-            'phase_specific_trigger_renaming', false));
+-        
+-        if use_phase_specific
+-            rules = step_cfg.phase_specific_trigger_renaming_rules;
+-            if isstruct(rules) && ...
+-                    isfield(rules, current_phase) && ...  % current_phase is string
+-                    isfield(rules.(char(current_phase)), cat) && ...
+-                    isfield(rules.(char(current_phase)).(cat), 'code')
+-                new_code_phase = rules.(char(current_phase)).(cat).code;
+-            end
+-        end
+-        
+-        % Choose final code: phase override first, else block code
+-        final_code = new_code;
+-        if strlength(string(new_code_phase)) > 0
+-            final_code = new_code_phase;
+-        end
+-        
+         before = helpers.normalize_trigger_type(EEG.event(x).type);
+         
+-        if strlength(string(final_code)) > 0
+-            EEG.event(x).type = char(string(final_code));
++        if strlength(string(new_code)) > 0
++            EEG.event(x).type = char(string(new_code));
+         else
+             EEG.event(x).type = current_type;
+         end
+@@ -1459,7 +1411,7 @@ step_cfg.behavior_log_map               = {};
+ 
+ % Phase markers
+ step_cfg.phase_start_markers = struct();
+-step_cfg.trigger_phase_min_start_markers = 5;
++step_cfg.trigger_phase_min_start_markers = []; % Require all configured start markers.
+ step_cfg.trigger_phase_min_phases_with_remaps = 2;
+ 
+ % Optional enabling flags / generic defaults
+diff --git a/tests/TriggerfixTest.m b/tests/TriggerfixTest.m
+new file mode 100644
+index 0000000000000000000000000000000000000000..fa4c6dfd87ec98f5316b7b91814494c10631e183
+--- /dev/null
++++ b/tests/TriggerfixTest.m
+@@ -0,0 +1,65 @@
++classdef TriggerfixTest < matlab.unittest.TestCase
++    methods (Test)
++        function remapsPhaseBlocksAfterMissingTrial(testCase)
++            repoRoot = fileparts(fileparts(mfilename('fullpath')));
++            testCase.applyFixture(matlab.unittest.fixtures.PathFixture(fullfile(repoRoot, 'steps')));
++            folder = testCase.applyFixture(matlab.unittest.fixtures.TemporaryFolderFixture);
++            paths.bids_ses_dir = folder.Folder;
++            paths.prep_02_out_dir = fullfile(folder.Folder, 'output');
++
++            % Stub the EEGLAB check and use a placeholder header for input discovery.
++            writelines(["function EEG = eeg_checkset(EEG)", "end"], ...
++                fullfile(folder.Folder, 'eeg_checkset.m'));
++            testCase.applyFixture(matlab.unittest.fixtures.PathFixture(folder.Folder));
++            eegDir = fullfile(paths.bids_ses_dir, 'eeg');
++            mkdir(eegDir);
++            fclose(fopen(fullfile(eegDir, 'sub-001_ses-01_task-task_eeg.vhdr'), 'w'));
++
++            helpers = eeg_pipeline_helpers('');
++            helpers.log_msg_default = @(varargin) [];
++            helpers.safe_save_set = @TriggerfixTest.saveSet;
++            cfg.io.overwrite_mode = "delete";
++
++            cfg.paradigms.myParadigm.triggerfix.run_raw_order_qc = false;
++            cfg.paradigms.myParadigm.triggerfix.gates.start_markers = struct('practice', "S 81", 'test', "S 82");
++            cfg.paradigms.myParadigm.triggerfix.raw_triggers = struct('cue', "S 31", 'probe', "S 32");
++            cfg.paradigms.myParadigm.triggerfix.blocking.cue.raw_key = "cue";
++            cfg.paradigms.myParadigm.triggerfix.blocking.probe.raw_key = "probe";
++            cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming = true;
++            cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.practice.cue.blocks = { ...
++                struct('n', 2, 'code', "S 311"), struct('n', Inf, 'code', "S 312")};
++            cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.test.cue.blocks = { ...
++                struct('n', 1, 'code', "S 313"), struct('n', 1, 'code', "S 314"), ...
++                struct('n', Inf, 'code', "S 315")};
++            cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.test.probe.code = "S 321";
++            cfg.paradigms.myParadigm.triggerfix.first_match_replacements = {struct('match_code', "S 311", 'replace_code', "S 319")};
++
++            % Repeat the practice marker at the end to check that its count resets.
++            raw = {'S 81', 'S 31', 'S 31', 'S 31', ...
++                'S 82', 'S 31', 'S 32', 'S 31', 'S 31', 'S 31', 'S 81', 'S 31'};
++            expected = {'S 81', 'S 319', 'S 311', 'S 312', ...
++                'S 82', 'S 313', 'S 321', 'S 314', 'S 315', 'S 315', 'S 81', 'S 311'};
++
++            for strategy = ["trigger_only", "block_only"]
++                cfg.paradigms.myParadigm.triggerfix.phase_strategy = strategy;
++                % The second recording is missing the third practice trial.
++                for kept = {1:numel(raw), [1:3, 5:numel(raw)]}
++                    indices = kept{1};
++                    EEG.event = struct('type', raw(indices), 'latency', num2cell(100 * indices));
++                    helpers.safe_load_bv = @(varargin) EEG;
++                    result = eeg_prep02_triggerfix('001', cfg, paths, helpers);
++                    testCase.assertTrue(result.ok && ~result.skipped, result.message);
++                    saved = load(result.out_set_file, 'EEG');
++                    testCase.verifyEqual({saved.EEG.event.type}, expected(indices));
++                    testCase.verifyEqual([saved.EEG.event.latency], 100 * indices);
++                end
++            end
++        end
++    end
++
++    methods (Static, Access = private)
++        function EEG = saveSet(EEG, outDir, filename, varargin)
++            save(fullfile(outDir, filename), 'EEG', '-mat');
++        end
++    end
++end
+diff --git a/tutorials/HowTo_Config.txt b/tutorials/HowTo_Config.txt
+index 5a233d84a2573a081e1c689484a9e6a5f2af0fa0..2acbff399f275c550b358e62aff830682dd79006 100644
+--- a/tutorials/HowTo_Config.txt
++++ b/tutorials/HowTo_Config.txt
+@@ -60,10 +60,71 @@ STEP 01: BIDS FORMATTING
+ 
+ ------------------------------
+ STEP 02: TRIGGERFIX
+-- rename triggers/Events and (optionally) compare to behaviour events-log 
+-- currently designed for fear conditioning paradigm
+-- will be updated to be more generic
+-- Details coming soon…
++Enable cfg.steps.prep_02_triggerfix.run in eeg_pipeline_config.m and edit
++the existing cfg.paradigms.myParadigm.triggerfix section. Step 02 reads BIDS
++BrainVision files using cfg.bids.task_label and cfg.bids.session_label by
++default. Override input_vhdr_pattern only if the filenames differ. If a session
++has several headers, allow_multiple_runs processes all of them. Otherwise
++multiple_vhdr_policy selects the most recent by default and also supports
++"first" and "error". Set use_explicit_chanlist to true to read only the channels
++in explicit_chanlist. The step saves *_triggersfixed.set files for Step 03.
++
++Enter the codes as they were recorded in raw_triggers. In blocking, give each
++trigger category a raw_key referring to one of those entries. The blocks list
++assigns a new code to successive occurrences in that category. For example,
++n=4 takes four occurrences and n=Inf takes the remainder. Use an empty code
++("") to count a block while keeping its original labels.
++
++Example without phases. Fill these fields to rename the first four occurrences
++of S 11 to S 111 and all later occurrences to S 112.
++
++    cfg.paradigms.myParadigm.triggerfix.use_gating_from_start_markers = false;
++    cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawA = "S 11";
++    cfg.paradigms.myParadigm.triggerfix.blocking.categoryA.raw_key = "rawA";
++    cfg.paradigms.myParadigm.triggerfix.blocking.categoryA.blocks = { ...
++        struct('n', 4, 'code', "S 111"), struct('n', Inf, 'code', "S 112")};
++
++Example with phases. Give each phase its own start marker. All category counts
++restart at every observed marker. Phase and category names are MATLAB struct
++field names and must match across settings. Use .code for one label or
++.blocks for a list of blocks in a phase. Categories without a phase override
++use the blocks defined under blocking.
++
++    cfg.paradigms.myParadigm.triggerfix.use_gating_from_start_markers = true;
++    cfg.paradigms.myParadigm.triggerfix.gates.start_markers = ...
++        struct('phase1', "S 81", 'phase2', "S 82");
++    cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawA = "S 31";
++    cfg.paradigms.myParadigm.triggerfix.blocking.categoryA.raw_key = "rawA";
++    cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming = true;
++    cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase1.categoryA.blocks = { ...
++        struct('n', 2, 'code', "S 311"), struct('n', Inf, 'code', "S 312")};
++    cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryA.blocks = { ...
++        struct('n', 1, 'code', "S 313"), struct('n', 1, 'code', "S 314"), ...
++        struct('n', Inf, 'code', "S 315")};
++    cfg.paradigms.myParadigm.triggerfix.phase_strategy = "trigger_only";
++
++Choose phase_strategy when using phase starts. "trigger_only" skips a run when
++phase QA fails. "block_only" counts blocks within observed boundaries without
++phase QA. The default "trigger_then_block_fallback" tries phase QA and uses
++block counting within observed boundaries on failure. With
++trigger_phase_min_start_markers = [], QA requires each configured start marker.
++A numeric value counts all observed occurrences. For a single phase using QA,
++set trigger_phase_min_phases_with_remaps to 1 and trigger_phase_max_phase_share
++to 1. The other QA limits are listed in the config.
++
++To replace selected early trials after phased remapping, enable
++enable_first_match_replacements and add first_match_replacements entries with
++match_code, replace_code and optionally max_replacements (default 1). The
++match_code_key and replace_code_key options look up codes in raw_triggers. Use
++a replacement code outside the Step 06 epoch list to exclude the trial from
++epoching.
++The old triggerfix.rules option raises a configuration error.
++
++For RTGMN/CF-style behavior logs, the optional run_raw_order_qc compares raw
++trigger order against the log. Configure behavior_log_map, the log columns and
++the tokens to compare. Set run_raw_order_qc to false if you only need renaming.
++Run a representative subject and check the log and output event labels before
++running the batch.
+ 
+ ------------------------------
+ STEP 03: UNTIL ICA --> main preprocessing step: filters, detects and interpolates bad channels in preparation for ICA
