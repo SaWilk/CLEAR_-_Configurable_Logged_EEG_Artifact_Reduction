@@ -913,7 +913,7 @@ cfg.prep_06.do_artifact_rejection = true; %# HOWTO: do we have suggestions when 
 % Usually keep this false when using ERPLAB, because ERPLAB's extreme-voltage
 % rule can implement the same kind of threshold.
 cfg.prep_06.do_initial_hard_threshold_rejection = false;
-cfg.prep_06.initial_hard_threshold_uv           = 200;
+cfg.prep_06.initial_hard_threshold_uv           = 100;
 
 % Select exactly one final epoch-rejection method.
 %
@@ -944,7 +944,7 @@ cfg.prep_06.erplab_epoch_rejection.twindow_ms = [];
 cfg.prep_06.erplab_epoch_rejection.clear_existing_flags = true;
 
 cfg.prep_06.erplab_epoch_rejection.use_extreme_voltage = true;
-cfg.prep_06.erplab_epoch_rejection.extreme_voltage_uV  = 200;
+cfg.prep_06.erplab_epoch_rejection.extreme_voltage_uV  = 100;
 cfg.prep_06.erplab_epoch_rejection.flag_extreme_voltage = 1;
 
 cfg.prep_06.erplab_epoch_rejection.use_sample_diff = true;
