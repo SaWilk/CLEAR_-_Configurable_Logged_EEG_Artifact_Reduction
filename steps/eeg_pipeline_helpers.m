@@ -7367,16 +7367,22 @@ else
 end
 end
 
-function validate_ica_matrices_impl(weights, sphere, expected_rank, n_channels, method_name)
+function component_count = validate_ica_matrices_impl(weights, sphere, expected_rank, n_channels, method_name)
+% An empty expected_rank permits a dimension selected by pop_runica.
 if isempty(weights) || isempty(sphere) || ~isnumeric(weights) || ~isnumeric(sphere)
     error('%s returned empty or non-numeric ICA matrices.', char(method_name));
 end
 if any(~isfinite(weights(:))) || any(~isfinite(sphere(:)))
     error('%s returned ICA matrices containing non-finite values.', char(method_name));
 end
-if size(weights, 1) ~= expected_rank
+component_count = size(weights, 1);
+if ~isempty(expected_rank) && component_count ~= expected_rank
     error('%s returned %d component rows in icaweights; expected %d.', ...
-        char(method_name), size(weights, 1), expected_rank);
+        char(method_name), component_count, expected_rank);
+end
+if component_count > n_channels
+    error('%s returned %d component rows in icaweights for %d ICA channels.', ...
+        char(method_name), component_count, n_channels);
 end
 if size(weights, 2) ~= size(sphere, 1)
     error(['%s returned incompatible ICA matrices: icaweights is %s and ' ...
@@ -7394,12 +7400,12 @@ end
 % weights with a [components x channels] sphere. The combined unmixing
 % matrix must have the same [components x channels] shape in both cases.
 unmixing = weights * sphere;
-if ~isequal(size(unmixing), [expected_rank n_channels]) || ...
+if ~isequal(size(unmixing), [component_count n_channels]) || ...
         any(~isfinite(unmixing(:)))
     error(['%s returned an invalid combined unmixing matrix of size %s; ' ...
         'expected [%d %d] with finite values.'], ...
         char(method_name), mat2str(size(unmixing)), ...
-        expected_rank, n_channels);
+        component_count, n_channels);
 end
 end
 
