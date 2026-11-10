@@ -44,6 +44,10 @@ try
         step_cfg = helpers.merge_structs_recursive(step_cfg, cfg.prep_02);
     end
 
+    if isfield(step_cfg, 'rules')
+        error('Step 02: triggerfix.rules is unsupported.');
+    end
+
     overwrite_mode = helpers.resolve_overwrite_mode(cfg, step_cfg.overwrite_mode);
 
     % ---------------------------------------------------------------------
@@ -158,9 +162,8 @@ try
             end
         end
 
-        if isfield(tf, 'rules') && ~isempty(tf.rules)
-            error(['Step 02: cfg.paradigms.<name>.triggerfix.rules is not supported/implemented. ' ...
-           'Please remove cfg.paradigms.<name>.triggerfix.rules from your config.']);
+        if isfield(tf, 'rules')
+            error('Step 02: triggerfix.rules is unsupported.');
         end
 
         if isfield(tf, 'first_match_replacements')
@@ -684,7 +687,8 @@ try
                     end
                     if hitPhase
                         phase_start_seen_counts.(char(current_phase)) = phase_start_seen_counts.(char(current_phase)) + 1;
-                    continue;
+                        cat_counter_phase_primary.(char(current_phase)) = struct();
+                        continue;
                     end
         
                     % find matched category by raw token
@@ -705,11 +709,7 @@ try
         
                     cat = char(matched_cat);
         
-                    if ~isfield(blocking, cat) || ~isfield(blocking.(cat),'blocks')
-                        continue;
-                    end
-        
-                    blocks = blocking.(cat).blocks;
+                    blocks = helpers.triggerfix_blocks_for_phase(blocking.(cat), step_cfg, char(current_phase), cat);
                     if isempty(blocks); continue; end
         
                     if strlength(current_phase) == 0
@@ -742,32 +742,10 @@ try
                 break;
             end
         end
-                   % Optional phase-specific renaming 
-                    new_code_phase = "";  % always initialize for this event
-                    
-                    use_phase_specific = logical(getfield_default(step_cfg, ...
-                        'phase_specific_trigger_renaming', false));
-                    
-                    if use_phase_specific
-                        rules = step_cfg.phase_specific_trigger_renaming_rules;
-                    
-                        if isstruct(rules) && isfield(rules, phKey) && isfield(rules.(phKey), cat) && ...
-                                isfield(rules.(phKey).(cat), 'code')
-                            new_code_phase = rules.(phKey).(cat).code;
-                        end
-                    end
-                                        
-                    % Apply phase-specific override at final assignment
-                    if strlength(string(new_code_phase)) > 0
-                        final_code = new_code_phase;
-                    else
-                        final_code = new_code;
-                    end
-                    
                     before = helpers.normalize_trigger_type(EEGp.event(x).type);
 
-                    if strlength(string(final_code)) > 0
-                        EEGp.event(x).type = char(string(final_code));
+                    if strlength(string(new_code)) > 0
+                        EEGp.event(x).type = char(string(new_code));
                     else
                         EEGp.event(x).type = current_type;
                     end
@@ -851,20 +829,18 @@ try
                         end
                         remap_counts_primary(key_ba) = remap_counts_primary(key_ba) + 1;
                                             end
-                        n_start_total = 0;
-                        phase_keys = fieldnames(phase_start_seen_counts);
-                        for kk = 1:numel(phase_keys)
-                            n_start_total = n_start_total + double(phase_start_seen_counts.(phase_keys{kk}));
-                        end
-                        
-                        phase_keys_with_remaps = fieldnames(n_remaps_primary_by_phase);
-                        num_phases_with_remaps = numel(phase_keys_with_remaps);
-                        
-                        min_start_markers = double(step_cfg.trigger_phase_min_start_markers);
-                        min_phases_remaps = double(step_cfg.trigger_phase_min_phases_with_remaps);
-                        
-                        
                 end
+                    start_counts = cell2mat(struct2cell(phase_start_seen_counts));
+                    n_start_total = sum(start_counts);
+                    min_start_markers = double(step_cfg.trigger_phase_min_start_markers);
+                    if isempty(min_start_markers)
+                        starts_pass = all(start_counts > 0);
+                    else
+                        starts_pass = n_start_total >= min_start_markers;
+                    end
+                    num_phases_with_remaps = numel(fieldnames(n_remaps_primary_by_phase));
+                    min_phases_remaps = double(step_cfg.trigger_phase_min_phases_with_remaps);
+
                     phaseKeysPrim = fieldnames(n_remaps_primary_by_phase_only);
                     for kk = 1:numel(phaseKeysPrim)
                         ph = phaseKeysPrim{kk};
@@ -893,7 +869,7 @@ try
                     n_remaps_primary_total, n_start_total, num_phases_with_remaps, dominant_share_max, max_phase_share);
                     
                     if n_remaps_primary_total >= trigger_phase_min_remaps && ...
-                       n_start_total >= min_start_markers && ...
+                       starts_pass && ...
                        num_phases_with_remaps >= min_phases_remaps && ...
                        max_phase_share <= dominant_share_max
                         trigger_primary_ok = true;
@@ -967,7 +943,8 @@ end
                     end
                     if hitPhase
                         phase_start_seen_counts.(char(current_phase)) = phase_start_seen_counts.(char(current_phase)) + 1;
-                    continue;
+                        cat_counter_phase.(char(current_phase)) = struct();
+                        continue;
                     end
                 end
         
@@ -989,11 +966,7 @@ end
         
                 cat = char(matched_cat);
         
-                if ~isfield(blocking, cat) || ~isfield(blocking.(cat),'blocks')
-                    continue;
-                end
-        
-                blocks = blocking.(cat).blocks;
+                blocks = helpers.triggerfix_blocks_for_phase(blocking.(cat), step_cfg, char(current_phase), cat);
                 if isempty(blocks); continue; end
         
                 % counter
@@ -1051,31 +1024,10 @@ end
             end
         end
         
-        % Apply phase-specific renaming override (same semantics as PRIMARY)
-        new_code_phase = "";  % default: no override
-        use_phase_specific = logical(getfield_default(step_cfg, ...
-            'phase_specific_trigger_renaming', false));
-        
-        if use_phase_specific
-            rules = step_cfg.phase_specific_trigger_renaming_rules;
-            if isstruct(rules) && ...
-                    isfield(rules, current_phase) && ...  % current_phase is string
-                    isfield(rules.(char(current_phase)), cat) && ...
-                    isfield(rules.(char(current_phase)).(cat), 'code')
-                new_code_phase = rules.(char(current_phase)).(cat).code;
-            end
-        end
-        
-        % Choose final code: phase override first, else block code
-        final_code = new_code;
-        if strlength(string(new_code_phase)) > 0
-            final_code = new_code_phase;
-        end
-        
         before = helpers.normalize_trigger_type(EEG.event(x).type);
         
-        if strlength(string(final_code)) > 0
-            EEG.event(x).type = char(string(final_code));
+        if strlength(string(new_code)) > 0
+            EEG.event(x).type = char(string(new_code));
         else
             EEG.event(x).type = current_type;
         end
@@ -1459,7 +1411,7 @@ step_cfg.behavior_log_map               = {};
 
 % Phase markers
 step_cfg.phase_start_markers = struct();
-step_cfg.trigger_phase_min_start_markers = 5;
+step_cfg.trigger_phase_min_start_markers = []; % Require all configured start markers.
 step_cfg.trigger_phase_min_phases_with_remaps = 2;
 
 % Optional enabling flags / generic defaults

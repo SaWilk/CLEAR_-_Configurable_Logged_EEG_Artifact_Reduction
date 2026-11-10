@@ -359,7 +359,7 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in 
 %    - blocking.count_scope = "global"
 %    - fill triggerfix.blocking.category to rename triggers
 %    - set enable_first_match_replacements = false
-%    - phase_strategy as trigger_only (or block_only)
+%    - phase_strategy applies only with configured phase start markers
 %    - phase-specific renaming empty
 %
 % B) PARADIGM WITH PHASES
@@ -368,22 +368,19 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in 
 %       markers, e.g. 'phase1',    "S 92", ...
 %    - name triggers per category
 %    - blocking.count_scope = "phase"
-%    - adjust triggerfix.blocking.category to the right number of
-%      categories but leave new trigger names empty
+%    - define each category in blocking and optionally override its blocks
+%      for individual phases in phase_specific_trigger_renaming_rules
 %    - optional: enable_first_match_replacements = true, and set
 %      first_match_replacements to correct phase-specific trigger
 %    - phase_strategy "trigger_then_block_fallback"
-%    - enter phase-specific new codes   
+%    - see tutorials/HowTo_Config.txt for both setups
 
 
 cfg.paradigms.myParadigm.triggerfix = struct();
 
 % cfg.steps.prep_02_triggerfix.run_raw_order_qc = false; 
-% %find behavior log file (only if you want to use RAW QC triggerfix --> DO NOT USE at the moment)
-% %if false skip Raw QC block and go on with 1) Phases
-% 
-% %%% RAW QC Trigger from Behavior files 
-% % (WARNING: structure implemented, but not running yet, DO NOT USE)
+% Optional behavior-log QC for RTGMN/CF-style logs. The runtime default is
+% true. Set false to skip the comparison. The loader expects a Time column.
 % cfg.paradigms.myParadigm.triggerfix.run_raw_order_qc = false;
 % 
 % %Enter column labels from behavioral data sets
@@ -404,7 +401,7 @@ cfg.paradigms.myParadigm.triggerfix = struct();
 % };
 % 
 % cfg.paradigms.myParadigm.triggerfix.allow_multiple_runs = false;
-% cfg.paradigms.myParadigm.triggerfix.multiple_vhdr_policy = " "; % most_recent
+% cfg.paradigms.myParadigm.triggerfix.multiple_vhdr_policy = "most_recent"; % Also supports "first" and "error"
 % cfg.paradigms.myParadigm.triggerfix.input_vhdr_pattern = "";  
 % cfg.paradigms.myParadigm.triggerfix.use_explicit_chanlist = false;
 % cfg.paradigms.myParadigm.triggerfix.explicit_chanlist = 1:66;
@@ -415,6 +412,9 @@ cfg.paradigms.myParadigm.triggerfix = struct();
 % 
 % %%% optional output QC override
 % cfg.paradigms.myParadigm.triggerfix.qc_out_dir = "";
+
+% cfg.paradigms.myParadigm.triggerfix.log_summary_only = true;
+% cfg.prep_02.use_behavior_for_trigger_strategy = true; % Log a warning if behavior QC finds a mismatch
 
 %%% 1) Phases: Enter start markers for your phases if use_gating_from_start_markers = true
 
@@ -475,24 +475,23 @@ cfg.paradigms.myParadigm.triggerfix.enable_first_match_replacements = false; %tr
 %false if the same renaming rule applies for all triggers of the same category within a phase
 %false if paradigm without phases
 
+% Use match_code_key / replace_code_key to refer to entries in raw_triggers.
 cfg.paradigms.myParadigm.triggerfix.first_match_replacements = {
     struct('match_code'," ", 'replace_code'," ",    'max_replacements',1),
     struct('match_code'," ", 'replace_code'," ",'max_replacements',1)
 };
 
 cfg.paradigms.myParadigm.triggerfix.phase_strategy = " "; 
-%"trigger_only" remapping only following start trigger; useful if triggers
-%have already been checked or corrected before pipeline
-%"block_only" remapping following counting within blocks; useful if
-% start triggers are missing
-% "trigger_then_block_fallback" remapping following start triggers, if less
-% than min_remap switch to block counting; can also be used for paradigms
-% without phases
+% "trigger_only" uses phase starts and skips runs that fail phase QA.
+% "block_only" counts within observed phases without phase QA.
+% "trigger_then_block_fallback" (default) tries phase QA first and falls back
+% to block counting within observed phase boundaries.
 
 %%% 4) Phase-specific trigger renaming 
 cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming = false; 
 
-% Enter new codes after renaming per phase and category
+% Use .code for one label throughout a phase or .blocks for several blocks.
+% A phase-specific .blocks list takes precedence over .code and the category-wide blocks.
 cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules = struct();
 
 cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase1.categoryA.code = " ";
@@ -505,8 +504,15 @@ cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2
 cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryC.code = " ";
 cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryD.code = " ";
 
+% Optional phase-specific block list using the same n/code format as blocking.
+% cfg.paradigms.myParadigm.triggerfix.phase_specific_trigger_renaming_rules.phase2.categoryA.blocks = ...
+%     {struct('n', 10, 'code', "S 201"), struct('n', Inf, 'code', "S 202")};
+
+% Phase QA applies to trigger_only and trigger_then_block_fallback.
+% [] expects each configured start marker. A number counts occurrences.
+cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_start_markers = [];
 cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_remaps = 5; % minimal number of expected remaps in total
-cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_phases_with_remaps = 2; %minimal number of extpected remaps per phase
+cfg.paradigms.myParadigm.triggerfix.trigger_phase_min_phases_with_remaps = 2; % minimum number of phases with remaps
 cfg.paradigms.myParadigm.triggerfix.trigger_phase_max_phase_share = 0.80; % max percentage of remaps in phase, if higher start triggers not plausible and fallback to blocks
 
 

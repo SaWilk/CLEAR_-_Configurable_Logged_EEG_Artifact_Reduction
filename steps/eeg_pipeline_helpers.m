@@ -158,8 +158,7 @@ helpers.safe_rmdir                             = @safe_rmdir_impl;
 helpers.write_ic_topography_pngs               = @write_ic_topography_pngs_impl;
 helpers.merge_structs_recursive                = @merge_structs_recursive_impl;
 
-%helpers.apply_triggerfix_rules_from_cfg_rules = @apply_triggerfix_rules_from_cfg_rules_impl;
-%Rules not implemented in current config
+helpers.triggerfix_blocks_for_phase            = @triggerfix_blocks_for_phase_impl;
 
 % -------------------------------------------------------------------------
 % AMICA, ICA QC, and Step-05 ICLabel helper functions (Saskia branch)
@@ -6723,135 +6722,22 @@ output_paths = {out_path};
 end
 
 % =========================================================================
-% Triggerfix config translation 
+% Step 02 phase-specific block lists
 % =========================================================================
-% function step_cfg = apply_triggerfix_rules_from_cfg_rules_impl(step_cfg, rules)
-% NOT IMPLEMENTED in current config options!
-% % Translate paradigma triggerfix rules into the legacy Step02 step_cfg fields.
-% % Expected rules format (from cfg.paradigms.<name>.triggerfix.rules):
-% %   - table:
-% %       struct('phase', 'habituation'|'generalization'|'return_of_fear',
-% %              'match','table','raw_key', <raw_key>, 'target', <target_code>)
-% %   - count_block:
-% %       struct('phase','acquisition'|'extinction','match','count_block','raw_key', <raw_key>, ...)
-% %   - disable_first_ext:
-% %       struct('match','disable_first_ext', 'first_minus_code',..., 'first_plus_code',...,
-% %              'revert_minus_raw_key','cs_minus', 'revert_plus_raw_key','cs_plus')
-% %   - disable_first_acq:
-% %       struct('match','disable_first_acq', 'first_minus_code',..., 'first_plus_code',...,
-% %     s_code',..., 'disabled_plus_code',...)
-% % NOTE:
-% % This helper currently implements only the "table" and "count_block" rule types.
-% 
-%     if nargin < 2 || isempty(rules)
-%         return;
-%     end
-% 
-%     if isempty(step_cfg)
-%         step_cfg = struct();
-%     end
-% 
-%     % rules may be a cell array of structs or a struct array
-%     if isstruct(rules) && ~iscell(rules)
-%         rules = num2cell(rules);
-%     end
-% 
-%     for r = 1:numel(rules)
-%         rule = rules{r};
-% 
-%         match_type = "";
-%         if isstruct(rule) && isfield(rule, 'match')
-%             match_type = string(rule.match);
-%         end
-% 
-%         if match_type == "table"
-%             if isfield(rule,'phase') && isfield(rule,'raw_key') && isfield(rule,'target')
-%                 phase   = string(rule.phase);
-%                 raw_key = char(string(rule.raw_key));
-%                 target  = char(string(rule.target));
-% 
-%                 phase_key = matlab.lang.makeValidName(lower(char(phase)));
-% 
-%                 if ~isfield(step_cfg,'table_maps') || ~isstruct(step_cfg.table_maps)
-%                     step_cfg.table_maps = struct();
-%                 end
-% 
-%                 map_in = {};
-%                 if isfield(step_cfg.table_maps, char(phase_key))
-%                     map_in = step_cfg.table_maps.(char(phase_key));
-%                 end
-% 
-%                 step_cfg.table_maps.(char(phase_key)) = upsert_map_key_impl(map_in, raw_key, target);
-%             end
-% 
-%         elseif match_type == "count_block"
-%             if isfield(rule,'phase') && isfield(rule,'raw_key')
-% 
-%                 phase   = string(rule.phase);
-%                 raw_key = char(string(rule.raw_key));
-%                 phase_key = matlab.lang.makeValidName(lower(char(phase)));
-% 
-%                 if ~isfield(step_cfg,'count_blocks') || ~isstruct(step_cfg.count_blocks)
-%                     step_cfg.count_blocks = struct();
-%                 end
-% 
-%                 if ~isfield(step_cfg.count_blocks, char(phase_key)) || ...
-%                         ~isstruct(step_cfg.count_blocks.(char(phase_key)))
-%                     step_cfg.count_blocks.(char(phase_key)) = struct();
-%                 end
-% 
-%                 cb = step_cfg.count_blocks.(char(phase_key));
-% 
-%                 % block sizes
-%                 if isfield(rule,'n_first_block');  cb.n_first_block  = double(rule.n_first_block); end
-%                 if isfield(rule,'n_second_block'); cb.n_second_block = double(rule.n_second_block); end
-%                 if isfield(rule,'n_third_block');  cb.n_third_block  = double(rule.n_third_block); end
-% 
-%                 % targets (abhängig von raw_key: cs_minus/cs_plus)
-%                 if isfield(rule,'target_first')
-%                     if strcmp(raw_key,'cs_minus'); cb.code_minus_block1 = char(string(rule.target_first)); end
-%                     if strcmp(raw_key,'cs_plus');  cb.code_plus_block1  = char(string(rule.target_first)); end
-%                 end
-%                 if isfield(rule,'target_second')
-%                     if strcmp(raw_key,'cs_minus'); cb.code_minus_block2 = char(string(rule.target_second)); end
-%                     if strcmp(raw_key,'cs_plus');  cb.code_plus_block2  = char(string(rule.target_second)); end
-%                 end
-%                 if isfield(rule,'target_third')
-%                     if strcmp(raw_key,'cs_minus'); cb.code_minus_block3 = char(string(rule.target_third)); end
-%                     if strcmp(raw_key,'cs_plus');  cb.code_plus_block3  = char(string(rule.target_third)); end
-%                 end
-% 
-%                 cb.cs_minus_key = 'cs_minus';
-%                 cb.cs_plus_key  = 'cs_plus';
-% 
-%                 step_cfg.count_blocks.(char(phase_key)) = cb;
-%             end
-%         end
-%     end
-% end
+function blocks = triggerfix_blocks_for_phase_impl(category_cfg, step_cfg, phase, category)
+blocks = getfield_safe_impl(category_cfg, 'blocks', {});
+if isempty(phase) || ~getfield_safe_impl(step_cfg, 'phase_specific_trigger_renaming', false)
+    return;
+end
 
-function map_out = upsert_map_key_impl(map_in, raw_key, target_code)
-% map_in is cell array: { 'cs_minus', "S 201"; ... } in Step02 defaults.
-    map_out = map_in;
-    key_str = string(raw_key);
-    found = false;
-
-    if isempty(map_out)
-        map_out = {char(key_str), string(target_code)};
-        return;
-    end
-
-    for i = 1:size(map_out, 1)
-        if size(map_out,2) >= 2 && string(map_out{i,1}) == key_str
-            map_out{i,2} = string(target_code);
-            found = true;
-            break;
-        end
-    end
-
-    if ~found
-        map_out(end+1,:) = {char(key_str), string(target_code)};
-    end
+rules = getfield_safe_impl(step_cfg, 'phase_specific_trigger_renaming_rules', struct());
+phase_rules = getfield_safe_impl(rules, phase, struct());
+rule = getfield_safe_impl(phase_rules, category, struct());
+if isfield(rule, 'blocks')
+    blocks = rule.blocks;
+elseif isfield(rule, 'code') && strlength(string(rule.code)) > 0
+    blocks = {struct('n', Inf, 'code', rule.code)};
+end
 end
 
 function t_s = convert_behavior_time_to_seconds_impl(time_raw, time_unit)
