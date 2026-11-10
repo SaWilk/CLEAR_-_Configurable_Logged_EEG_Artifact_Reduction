@@ -140,6 +140,7 @@ helpers.finalize_epoched_dataset               = @finalize_epoched_dataset_impl;
 helpers.save_final_epoched_outputs             = @save_final_epoched_outputs_impl;
 helpers.build_eeg_key_token_stream_with_time   = @build_eeg_key_token_stream_with_time_impl;
 helpers.find_first_event_latency               = @find_first_event_latency_impl;
+helpers.find_last_event_latency                = @find_last_event_latency_impl;
 helpers.crop_internal_breaks                   = @crop_internal_breaks_impl;
 helpers.ensure_channel_types                   = @ensure_channel_types_impl;
 helpers.find_flat_or_invalid_channels          = @find_flat_or_invalid_channels_impl;
@@ -929,13 +930,13 @@ paths.qc_root = fullfile(paths.derivatives_root, 'qc');
 ensure_dir_impl(paths.qc_root);
 
 paths.qc_ica_training_root   = fullfile(paths.qc_root, '03_ica_training');
-paths.qc_break_crop_root     = fullfile(paths.qc_root, '03_break_cropping');
+paths.qc_break_cropping_root     = fullfile(paths.qc_root, '03_break_cropping');
 paths.qc_bad_chans_root      = fullfile(paths.qc_root, '03_bad_chans');
 paths.qc_ica_components_root = fullfile(paths.qc_root, '05_ica_comps');
 paths.qc_epoch_rej_root      = fullfile(paths.qc_root, '06_epoch_rej');
 
 ensure_dir_impl(paths.qc_ica_training_root);
-ensure_dir_impl(paths.qc_break_crop_root);
+ensure_dir_impl(paths.qc_break_cropping_root);
 ensure_dir_impl(paths.qc_bad_chans_root);
 ensure_dir_impl(paths.qc_ica_components_root);
 ensure_dir_impl(paths.qc_epoch_rej_root);
@@ -2952,6 +2953,41 @@ for k = 1:numel(EEG.event)
 end
 end
 
+function [marker, latency] = find_last_event_latency_impl(EEG, event_type)
+% Return the last occurrence of any configured event type.
+
+latency = [];
+marker = [];
+
+if ~isfield(EEG, 'event') || isempty(EEG.event)
+    return;
+end
+
+if ischar(event_type) || isstring(event_type)
+    event_type = cellstr(string(event_type));
+end
+
+target_types = cellfun( ...
+    @normalize_trigger_type_impl, ...
+    event_type, ...
+    'UniformOutput', false);
+
+for k = 1:numel(EEG.event)
+
+    current_type = normalize_trigger_type_impl(EEG.event(k).type);
+    current_latency = double(EEG.event(k).latency);
+
+    if any(strcmp(current_type, target_types))
+
+        if isempty(latency) || current_latency > latency
+            latency = current_latency;
+            marker = current_type;
+        end
+    end
+end
+
+end
+
 function [EEG, info] = crop_internal_breaks_impl(EEG, step_cfg)
 % CROP_INTERNAL_BREAKS_IMPL
 %
@@ -2978,9 +3014,14 @@ function [EEG, info] = crop_internal_breaks_impl(EEG, step_cfg)
 %       Break cropping is performed only when ALL configured criteria
 %       inside this task window are matched exactly:
 %
-%       - exact total number of trial markers
-%       - exact number of temporal breaks
-%       - exact number of trials in every block
+%       - exact number of trial-onset markers and trials per block
+%       - sufficient gaps at every expected block boundary
+%       - a trial-end marker for every last trial of a block
+%       - non-overlapping removal windows with positive padding
+%       - no protected experimental events within removal windows
+%
+%       Long gaps within blocks are ignored.
+%       Missing breaks or end markers cause validation to fail.
 %
 % If any criterion fails, no data are removed.
 
@@ -3002,6 +3043,9 @@ info.observed_trials_per_block = [];
 info.boundary_trial_indices    = [];
 info.break_windows_sec         = zeros(0,2);
 info.removed_seconds           = 0;
+
+info.n_allowed_break_events = 0;
+info.allowed_break_event_details = strings(0,1);
 
 
 method = lower(strtrim(string(step_cfg.break_crop_method)));
@@ -3142,6 +3186,19 @@ if method == "markers"
 % =========================================================================
 
 elseif method == "trial_count"
+
+
+    % Zero padding can delete the end marker of the preceding trial and/or
+    % the onset marker of the following trial (pop_select includes edges).
+    if padding_after <= 0 || padding_before <= 0
+        info.status = "SKIPPED_VALIDATION_FAILED";
+        info.message = ...
+            "trial_count requires positive padding on both sides; [0 0] may remove trial markers.";
+
+        handle_break_validation_failure_impl(step_cfg, info.message);
+        return;
+    end
+
 
     % ---------------------------------------------------------------------
     % Validate configuration
@@ -3336,113 +3393,20 @@ elseif method == "trial_count"
         numel(trial_lat);
 
 
-    % ---------------------------------------------------------------------
-    % Detect temporal breaks between consecutive task trials
-    % ---------------------------------------------------------------------
-
-    if numel(trial_lat) >= 2
-
-        trial_times = ...
-            (trial_lat - 1) / double(EEG.srate);
-
-        trial_gaps = ...
-            diff(trial_times);
-
-        boundary_idx = ...
-            find(trial_gaps >= min_gap_sec);
-
-    else
-
-        trial_times = ...
-            (trial_lat - 1) / double(EEG.srate);
-
-        boundary_idx = [];
-    end
-
-
-    info.boundary_trial_indices = ...
-        boundary_idx;
-
-    info.n_breaks_found = ...
-        numel(boundary_idx);
-
 
     % ---------------------------------------------------------------------
-    % Derive observed block sizes from ALL sufficiently long gaps
+    % Validate the complete experimental trial sequence FIRST.
+    % Block boundaries are defined by trial indices, not temporal gaps.
+    % Long intervals within blocks are ignored.
     % ---------------------------------------------------------------------
-
-    if isempty(trial_lat)
-
-        block_counts = [];
-
-    else
-
-        block_starts = ...
-            [1 boundary_idx + 1];
-
-        block_ends = ...
-            [boundary_idx numel(trial_times)];
-
-        block_counts = ...
-            block_ends - block_starts + 1;
-    end
-
-
-    info.observed_trials_per_block = ...
-        block_counts;
-
-    info.n_blocks_detected = ...
-        numel(block_counts);
-
-
-    % ---------------------------------------------------------------------
-    % STRICT VALIDATION
-    %
-    % ALL criteria must match exactly.
-    % There is deliberately no tolerance and no heuristic selection.
-    % ---------------------------------------------------------------------
-
-    validation_errors = strings(0,1);
-
 
     if info.n_trial_markers ~= expected_n_trials
 
-        validation_errors(end+1,1) = sprintf( ... %#ok<AGROW>
-            'expected %d trial markers but found %d', ...
-            expected_n_trials, ...
-            info.n_trial_markers);
-    end
+        info.status = "SKIPPED_VALIDATION_FAILED";
 
-
-    if info.n_breaks_found ~= expected_n_breaks
-
-        validation_errors(end+1,1) = sprintf( ... %#ok<AGROW>
-            'expected %d breaks >= %.1f s but found %d', ...
-            expected_n_breaks, ...
-            min_gap_sec, ...
-            info.n_breaks_found);
-    end
-
-
-    if numel(block_counts) ~= n_blocks || ...
-            ~all(block_counts == trials_per_block)
-
-        validation_errors(end+1,1) = sprintf( ... %#ok<AGROW>
-            'expected block trial counts %s but found %s', ...
-            mat2str(repmat(trials_per_block, 1, n_blocks)), ...
-            mat2str(block_counts));
-    end
-
-
-    % Any mismatch -> leave EEG completely unchanged.
-    if ~isempty(validation_errors)
-
-        info.status = ...
-            "SKIPPED_VALIDATION_FAILED";
-
-        info.message = ...
-            "Strict break-crop validation failed: " + ...
-            strjoin(validation_errors, " | ");
+        info.message = sprintf( ...
+            'Strict trial-count validation failed: expected %d trial markers but found %d.', ...
+            expected_n_trials, info.n_trial_markers);
 
         handle_break_validation_failure_impl( ...
             step_cfg, info.message);
@@ -3452,43 +3416,135 @@ elseif method == "trial_count"
 
 
     % ---------------------------------------------------------------------
-    % All criteria passed exactly -> build removal windows
+    % Define fixed block boundaries
+    %
+    % Example: 6 blocks x 60 trials
+    % Boundaries: 60->61, 120->121, 180->181, 240->241, 300->301
     % ---------------------------------------------------------------------
 
-    break_windows = ...
-        zeros(expected_n_breaks, 2);
+    trial_times = (trial_lat - 1) / double(EEG.srate);
+
+    expected_boundary_idx = ...
+        (1:(n_blocks - 1)) * trials_per_block;
 
 
-    for b = 1:expected_n_breaks
+    % ---------------------------------------------------------------------
+    % Check temporal gaps ONLY at the expected block boundaries.
+    % No other inter-trial gaps are considered.
+    % ---------------------------------------------------------------------
 
-        left_trial_idx = ...
-            boundary_idx(b);
+    boundary_gaps = ...
+        trial_times(expected_boundary_idx + 1) - ...
+        trial_times(expected_boundary_idx);
 
-        right_trial_idx = ...
-            boundary_idx(b) + 1;
+    eligible_mask = boundary_gaps >= min_gap_sec;
 
-
-        break_windows(b,1) = ...
-            trial_times(left_trial_idx) + ...
-            padding_after;
+    boundary_idx = expected_boundary_idx(eligible_mask);
 
 
-        break_windows(b,2) = ...
-            trial_times(right_trial_idx) - ...
-            padding_before;
+    % ---------------------------------------------------------------------
+    % Record the validated structure
+    % ---------------------------------------------------------------------
+
+    info.boundary_trial_indices = boundary_idx;
+
+    info.n_breaks_found = numel(boundary_idx);
+
+    info.observed_trials_per_block = ...
+        repmat(trials_per_block, 1, n_blocks);
+
+    info.n_blocks_detected = n_blocks;
+
+
+    
+    
+    % ---------------------------------------------------------------------
+    % Build removal windows at the expected block boundaries.
+    %
+    % Require a trial-end marker and use its LAST occurrence between
+    % the final trial of a block and the next trial onset.
+    %
+    % Padding:
+    % [seconds after trial end, seconds before next trial onset]
+    % ---------------------------------------------------------------------
+
+    trial_end_marker_cfg = strings(0,1);
+
+    if isfield(step_cfg, 'break_trial_end_marker')
+        trial_end_marker_cfg = string(step_cfg.break_trial_end_marker);
     end
 
+    trial_end_marker_cfg = trial_end_marker_cfg( ...
+        strlength(strtrim(trial_end_marker_cfg)) > 0);
+
+    if isempty(trial_end_marker_cfg)
+
+        info.status = "SKIPPED_VALIDATION_FAILED";
+
+        info.message = ...
+            "trial_count requires break_trial_end_marker; onset-based cropping is unsafe.";
+
+        handle_break_validation_failure_impl(step_cfg, info.message);
+        return;
+    end
+
+    trial_end_lat = sort(double( ...
+        get_matching_event_latencies_impl(EEG, trial_end_marker_cfg)));
+
+    break_windows = zeros(numel(boundary_idx), 2);
+
+    for b = 1:numel(boundary_idx)
+
+        left_trial_idx  = boundary_idx(b);
+        right_trial_idx = left_trial_idx + 1;
+
+        % Only consider end markers between the two trial onsets.
+        candidate_end_lat = trial_end_lat( ...
+            trial_end_lat > trial_lat(left_trial_idx) & ...
+            trial_end_lat < trial_lat(right_trial_idx));
+
+        if isempty(candidate_end_lat)
+
+            info.status = "SKIPPED_VALIDATION_FAILED";
+
+            info.message = sprintf( ...
+                ['Break %d (%d -> %d): no trial-end marker ' ...
+                 'found before the next trial. Cropping skipped.'], ...
+                b, left_trial_idx, right_trial_idx);
+
+            handle_break_validation_failure_impl(step_cfg, info.message);
+            return;
+        end
+
+        % Use the final trial-end event, e.g. the last S 4.
+        previous_trial_end_sec = ...
+            (candidate_end_lat(end) - 1) / double(EEG.srate);
+
+        break_windows(b,1) = ...
+            previous_trial_end_sec + padding_after;
+
+        break_windows(b,2) = ...
+            trial_times(right_trial_idx) - padding_before;
+
+    end
+
+
+
+    % ---------------------------------------------------------------------
+    % Validation successful
+    % ---------------------------------------------------------------------
 
     info.status = "OK";
 
     info.message = sprintf( ...
-        ['Strict validation passed within task window %s -> %s: ' ...
-         '%d trials, %d breaks, block counts %s.'], ...
-        expected_first_marker, ...
-        expected_last_marker, ...
-        expected_n_trials, ...
-        expected_n_breaks, ...
-        mat2str(block_counts));
+        ['Strict trial-count validation passed within task window %s -> %s: ' ...
+         '%d trials in %d blocks of %d. ' ...
+         '%d of %d fixed block boundaries have gaps >= %.1f s; ' ...
+         'gaps within blocks were ignored.'], ...
+        expected_first_marker, expected_last_marker, ...
+        expected_n_trials, n_blocks, trials_per_block, ...
+        info.n_breaks_found, expected_n_breaks, min_gap_sec);
+
 
 
 else
@@ -3499,41 +3555,149 @@ else
 end
 
 
-% =========================================================================
+%% =========================================================================
 % Validate removal windows before changing EEG
 % =========================================================================
 
-valid_windows = ...
-    break_windows(:,2) > break_windows(:,1);
+% Sort windows in their original time coordinates.
+break_windows = sortrows(break_windows, 1);
 
+% Check that all windows are finite, within the recording,
+% and have a positive duration.
+recording_end_sec = (EEG.pnts - 1) / double(EEG.srate);
+
+valid_windows = ...
+    all(isfinite(break_windows), 2) & ...
+    break_windows(:,1) >= 0 & ...
+    break_windows(:,2) <= recording_end_sec & ...
+    break_windows(:,2) > break_windows(:,1);
 
 if ~all(valid_windows)
 
-    info.status = ...
-        "SKIPPED_VALIDATION_FAILED";
-
+    info.status = "SKIPPED_VALIDATION_FAILED";
     info.message = ...
-        "At least one detected break is shorter than the configured padding.";
+        "Invalid break window: check padding and recording boundaries.";
 
-    info.break_windows_sec = ...
-        zeros(0,2);
-
-    info.n_breaks_removed = 0;
-    info.removed_seconds  = 0;
-
-    handle_break_validation_failure_impl( ...
-        step_cfg, info.message);
-
+    handle_break_validation_failure_impl(step_cfg, info.message);
     return;
 end
+
+% Reject overlapping or touching removal windows.
+if size(break_windows, 1) > 1
+
+    overlapping_windows = ...
+        break_windows(2:end,1) <= break_windows(1:end-1,2);
+
+    if any(overlapping_windows)
+
+        info.status = "SKIPPED_VALIDATION_FAILED";
+        info.message = ...
+            "Overlapping or touching break-cropping windows detected.";
+
+        handle_break_validation_failure_impl(step_cfg, info.message);
+        return;
+    end
+end
+
+
+% =========================================================================
+% Protect experimental events during break cropping
+%
+% Allow only non-experimental recording markers:
+%   - New Segment
+%   - Comment
+%
+% All other events remain protected. Allowed events are documented
+% before removal. EEGLAB creates new boundary events at the cuts.
+% =========================================================================
+
+if method == "trial_count"
+
+    event_latencies = double([EEG.event.latency]);
+    event_times = (event_latencies - 1) / double(EEG.srate);
+
+    allowed_event_notes = strings(0, 1);
+
+    for b = 1:size(break_windows, 1)
+
+        event_idx = find( ...
+            event_times >= break_windows(b,1) & ...
+            event_times <= break_windows(b,2));
+
+        for j = 1:numel(event_idx)
+
+            k = event_idx(j);
+
+            event_type = strtrim(string(EEG.event(k).type));
+            event_code = "";
+
+            if isfield(EEG.event, 'code') && ...
+                    ~isempty(EEG.event(k).code)
+
+                event_code = strtrim(string(EEG.event(k).code));
+            end
+
+            type_lower = lower(event_type);
+            code_lower = lower(event_code);
+
+            % Explicitly protect experimental stimulus markers.
+            is_stimulus = ...
+                ~isempty(regexp( ...
+                    char(type_lower), '^s\s*\d+$', 'once')) || ...
+                code_lower == "stimulus";
+
+            % Allow only known recording metadata.
+            % EEGLAB can represent a BrainVision "New Segment" as "boundary".
+            is_allowed_metadata = ...
+                any(type_lower == ["new segment", "comment", "boundary"]) || ...
+                any(code_lower == ["new segment", "comment", "boundary"]);
+
+            is_allowed = is_allowed_metadata && ~is_stimulus;
+
+            if ~is_allowed
+
+                info.status = "SKIPPED_VALIDATION_FAILED";
+
+                info.message = sprintf( ...
+                    ['Break %d contains protected EEG event ' ...
+                     '(type=%s, code=%s, time=%.3f s); ' ...
+                     'cropping skipped.'], ...
+                    b, char(event_type), char(event_code), ...
+                    event_times(k));
+
+                handle_break_validation_failure_impl( ...
+                    step_cfg, info.message);
+
+                return;
+            end
+
+            % Record metadata that will be removed with the break.
+            allowed_event_notes(end+1,1) = string(sprintf( ...
+                'Break %d: type=%s, code=%s, time=%.3f s', ...
+                b, char(event_type), char(event_code), ...
+                event_times(k)));
+
+        end
+    end
+
+    info.n_allowed_break_events = numel(allowed_event_notes);
+    info.allowed_break_event_details = allowed_event_notes;
+
+    if ~isempty(allowed_event_notes)
+
+        info.message = string(info.message) + sprintf( ...
+            ' Allowed %d non-experimental recording event(s): %s.', ...
+            numel(allowed_event_notes), ...
+            char(strjoin(allowed_event_notes, ' | ')));
+    end
+end
+
 
 
 % =========================================================================
 % Remove breaks
 % =========================================================================
 
-break_windows = ...
-    sortrows(break_windows, 1);
 
 info.break_windows_sec = ...
     break_windows;
@@ -3867,7 +4031,7 @@ else
     return
 end
 
-end
+
 
 if isempty(subset_indices)
     return;
@@ -6493,7 +6657,13 @@ step_cfg.crop_to_task_markers = false;
 step_cfg.substitute_crop_markers = true;
 step_cfg.crop_start_marker    = 'S 91';
 step_cfg.crop_end_marker      = 'S 97';
-step_cfg.crop_padding_sec     = [0 0];
+
+% Select first or last occurrence of task boundary markers.
+step_cfg.crop_start_marker_occurrence = "first";
+step_cfg.crop_end_marker_occurrence   = "first";
+
+% Additional seconds to keep [before task start, after task end].
+step_cfg.crop_padding_sec = [0 0];
 
 % Internal break cropping
 step_cfg.break_crop_method = "off"; % "off" | "markers" | "trial_count"
@@ -6505,6 +6675,8 @@ step_cfg.break_end_marker   = {};
 % Strict trial-count method
 step_cfg.break_trial_marker = {};
 
+step_cfg.break_trial_end_marker = {};
+
 step_cfg.break_expected_n_blocks = [];
 step_cfg.break_trials_per_block  = [];
 
@@ -6512,12 +6684,12 @@ step_cfg.break_trials_per_block  = [];
 step_cfg.break_first_marker = {};
 step_cfg.break_last_marker  = {};
 
-% Every gap >= this threshold is considered an internal break candidate.
+% Only expected block boundaries are checked against this gap threshold.
 step_cfg.break_min_gap_sec = 30;
 
-% [seconds after previous trial/break-start,
-%  seconds before next trial/break-end]
-step_cfg.break_padding_sec = [0 0];
+% [seconds after previous trial end/break start,
+%  seconds before next trial onset/break end]
+step_cfg.break_padding_sec = [3 3];
 
 % "skip"  = leave continuous data unchanged if strict validation fails
 % "error" = stop preprocessing

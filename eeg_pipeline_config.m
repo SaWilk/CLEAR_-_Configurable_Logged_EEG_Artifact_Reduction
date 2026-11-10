@@ -497,11 +497,15 @@ cfg.prep_03.crop_to_task_markers = false;
 cfg.prep_03.substitute_crop_markers = true;
 
 % Event codes defining the section to keep.
-% For each boundary, use the first matching entry in EEG.event.
-% Multiple alternative codes are supported, e.g. {'S 91', 'S 92'}, to crop from first occurence of either marker.
-% The end must occur after the selected start.
+% The start/end occurrence can be set to "first" or "last" below.
+% Multiple alternative codes are supported, e.g. {'S 91', 'S 92'}.
+% For the task end, "last_sample" explicitly uses the recording end.
+% The selected end must occur after the selected start.
 cfg.prep_03.crop_start_marker = 'S 91';
 cfg.prep_03.crop_end_marker   = 'S 97';
+
+cfg.prep_03.crop_start_marker_occurrence = "first";
+cfg.prep_03.crop_end_marker_occurrence   = "first";
 
 % Additional seconds to keep [before start, after end].
 % The window is limited to the available recording.
@@ -543,6 +547,11 @@ cfg.prep_03.break_end_marker   = {};
 % COUNTED to validate trial numbers and detect breaks.
 cfg.prep_03.break_trial_marker = {};
 
+% Marker identifying the end of a trial.
+% When multiple occurrences exist, the last one before the next
+% trial onset is used to define the beginning of the break.
+cfg.prep_03.break_trial_end_marker = {};
+
 % Expected FIRST trigger in the retained data (e.g., task start).
 % Used for validation only; NOT counted as a trial.
 cfg.prep_03.break_first_marker = {};
@@ -557,32 +566,39 @@ cfg.prep_03.break_last_marker = {};
 %   break_expected_n_blocks = 6;
 %   break_trials_per_block  = 60;
 %
+
 % This means:
 %   - exactly 360 trial markers must be present
-%   - exactly 5 internal breaks must be detected
-%   - each detected block must contain exactly 60 trials
+%   - all 5 expected block boundaries must have sufficient temporal gaps
+%   - trial-end markers must be present for those boundaries
 cfg.prep_03.break_expected_n_blocks = [];
 cfg.prep_03.break_trials_per_block  = [];
 
 % Minimum temporal gap between two consecutive trial markers that is
 % considered an internal break.
 %
-% In strict trial-count mode, ALL gaps meeting this threshold are treated
-% as candidate breaks. Cropping is performed only if their number and
-% resulting block structure exactly match the settings above.
+% In trial_count mode, only gaps at the expected block boundaries
+% are considered. Longer gaps within blocks are ignored.
+%
+% Each block boundary is evaluated independently:
+% A break is removed only if its temporal gap meets the minimum
+% threshold. Shorter gaps remain unchanged.
+%
+% The expected total number of trials and the block structure
+% must still be valid.
 cfg.prep_03.break_min_gap_sec = 30;
 
 % Seconds to retain around every detected break:
 %
-% [seconds after previous trial / break-start,
-%  seconds before next trial / break-end]
+% [seconds AFTER the previous trial-END marker / break-start,
+%  seconds BEFORE the next trial-ONSET marker / break-end]
 %
-% Example:
-%   [20 3]
-%
-% keeps the first 20 s after the preceding trial and the final 3 s before
-% the next trial, removing only the middle part of the pause.
-cfg.prep_03.break_padding_sec = [0 0];
+% Example [20 3]: keep 20 s after the preceding trial end, and
+% 3 s before the next trial onset. Defaults are [3 3].
+% WARNING: [0 0] can delete trial-end/onset events and is rejected
+% in trial_count mode. Configure break_trial_end_marker in that mode.
+cfg.prep_03.break_padding_sec = [3 3];
+
 
 % Behavior when strict validation fails:
 %
