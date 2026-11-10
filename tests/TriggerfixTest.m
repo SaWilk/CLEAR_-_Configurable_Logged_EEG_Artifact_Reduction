@@ -49,7 +49,7 @@ classdef TriggerfixTest < matlab.unittest.TestCase
                     helpers.safe_load_bv = @(varargin) EEG;
                     result = eeg_prep02_triggerfix('001', cfg, paths, helpers);
                     testCase.assertTrue(result.ok && ~result.skipped, result.message);
-                    saved = load(result.out_set_file, 'EEG');
+                    saved = load(result.out_set_file, 'EEG', '-mat');
                     testCase.verifyEqual({saved.EEG.event.type}, expected(indices));
                     testCase.verifyEqual([saved.EEG.event.latency], 100 * indices);
                 end
