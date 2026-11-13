@@ -597,7 +597,8 @@ cfg.prep_03.break_min_gap_sec = 30;
 % 3 s before the next trial onset. Defaults are [3 3].
 % WARNING: [0 0] can delete trial-end/onset events and is rejected
 % in trial_count mode. Configure break_trial_end_marker in that mode.
-cfg.prep_03.break_padding_sec = [3 3];
+cfg.prep_03.break_padding_sec = [3 3]; % do not make this shorter than the 
+% epoch time window as it would cause you to lose the first/last epoch
 
 
 % Behavior when strict validation fails:
