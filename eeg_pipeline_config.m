@@ -545,15 +545,128 @@ cfg.prep_03.crop_to_task_markers = false;
 cfg.prep_03.substitute_crop_markers = true;
 
 % Event codes defining the section to keep.
-% For each boundary, use the first matching entry in EEG.event.
-% Multiple alternative codes are supported, e.g. {'S 91', 'S 92'}, to crop from first occurence of either marker.
-% The end must occur after the selected start.
+% The start/end occurrence can be set to "first" or "last" below.
+% Multiple alternative codes are supported, e.g. {'S 91', 'S 92'}.
+% For the task end, "last_sample" explicitly uses the recording end.
+% The selected end must occur after the selected start.
 cfg.prep_03.crop_start_marker = 'S 91';
 cfg.prep_03.crop_end_marker   = 'S 97';
+
+cfg.prep_03.crop_start_marker_occurrence = "first";
+cfg.prep_03.crop_end_marker_occurrence   = "first";
 
 % Additional seconds to keep [before start, after end].
 % The window is limited to the available recording.
 cfg.prep_03.crop_padding_sec = [0 0];
+
+% -------------------------------------------------------------------------
+% INTERNAL BREAK CROPPING (OPTIONAL)
+% -------------------------------------------------------------------------
+% Remove pauses/breaks within the retained task recording.
+%
+% Methods:
+%   "off"         = do not remove internal breaks
+%   "markers"     = use explicit break start/end markers/triggers
+%   "trial_count" = detect breaks from gaps between trial markers
+%                   and validate the expected trial/block structure
+%
+% Break cropping is applied after crop_to_task_markers and before
+% bad-channel detection.
+
+cfg.prep_03.break_crop_method = "off"; % "off" | "markers" | "trial_count"
+
+% -------------------------------------------------------------------------
+% Marker-based method
+% -------------------------------------------------------------------------
+% Used only when break_crop_method = "markers".
+%
+% Each break is defined by one start marker and one corresponding end marker.
+% The number and ordering of start/end markers must be unambiguous.
+
+cfg.prep_03.break_start_marker = {};
+cfg.prep_03.break_end_marker   = {};
+
+% -------------------------------------------------------------------------
+% trial-count method
+% -------------------------------------------------------------------------
+% Used only when break_crop_method = "trial_count".
+%
+% Marker defining the onset of one experimental trial (e.g., trial onset). 
+% COUNTED to validate trial numbers and detect breaks.
+cfg.prep_03.break_trial_marker = {};
+
+% Marker identifying the end of a trial.
+% When multiple occurrences exist, the last one before the next
+% trial onset is used to define the beginning of the break.
+cfg.prep_03.break_trial_end_marker = {};
+
+% Expected FIRST trigger in the retained data (e.g., task start).
+% Used for validation only; NOT counted as a trial.
+cfg.prep_03.break_first_marker = {};
+
+% Expected LAST trigger in the retained data (e.g., task end).
+% Used for validation only; NOT counted as a trial.
+cfg.prep_03.break_last_marker = {};
+
+% Expected experimental structure.
+%
+% Example:
+%   break_expected_n_blocks = 6;
+%   break_trials_per_block  = 60;
+%
+
+% This means:
+%   - exactly 360 trial markers must be present
+%   - all 5 expected block boundaries must have sufficient temporal gaps
+%   - trial-end markers must be present for those boundaries
+cfg.prep_03.break_expected_n_blocks = [];
+cfg.prep_03.break_trials_per_block  = [];
+
+% Minimum temporal gap between two consecutive trial markers that is
+% considered an internal break.
+%
+% In trial_count mode, only gaps at the expected block boundaries
+% are considered. Longer gaps within blocks are ignored.
+%
+% Each block boundary is evaluated independently:
+% A break is removed only if its temporal gap meets the minimum
+% threshold. Shorter gaps remain unchanged.
+%
+% The expected total number of trials and the block structure
+% must still be valid.
+cfg.prep_03.break_min_gap_sec = 30;
+
+% Seconds to retain around every detected break:
+%
+% [seconds AFTER the previous trial-END marker / break-start,
+%  seconds BEFORE the next trial-ONSET marker / break-end]
+%
+% Example [20 3]: keep 20 s after the preceding trial end, and
+% 3 s before the next trial onset. Defaults are [3 3].
+% WARNING: [0 0] can delete trial-end/onset events and is rejected
+% in trial_count mode. Configure break_trial_end_marker in that mode.
+cfg.prep_03.break_padding_sec = [3 3]; % do not make this shorter than the 
+% epoch time window as it would cause you to lose the first/last epoch
+
+
+% Behavior when strict validation fails:
+%
+%   "skip"
+%       Leave the continuous recording unchanged and document the failed
+%       validation in the break-cropping QC file.
+%
+%   "error"
+%       Stop Step 03 with an error.
+%
+% For a general-purpose pipeline, "skip" is the safer default.
+cfg.prep_03.break_on_validation_fail = "skip";
+
+% Write one short QC CSV per dataset documenting whether break cropping was
+% applied or skipped and which task structure was detected.
+%
+% Output folder:
+%   <derivatives_root>/qc/03_break_cropping/
+cfg.prep_03.write_break_cropping_qc = true;
 
 % -------------------------------------------------------------------------
 % IMPORTANT make sure these include your channel labels for AUX/EOG, otherwise channels will be included as EEG in ICA
