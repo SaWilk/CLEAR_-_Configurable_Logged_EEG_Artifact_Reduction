@@ -4133,16 +4133,16 @@ try
                 clean_data_with_zapline_plus(EEG_tmp.data, fs, struct('noisefreqs', freqs, 'plotResults', false, 'saveSpectra', true));
             clean_log.zapline.applied = true;
             
-            if clean_log.zapline.analytics.ratioNoiseClean > step_cfg.line_noise_ratio % check if noise ratio above acceptable threshold
+            if all(clean_log.zapline.analytics.ratioNoiseClean) > step_cfg.line_noise_ratio % check if noise ratio above acceptable threshold
                 if step_cfg.line_noise_fb_cleanline % check if fallback to cleanline allowed
                     clean_log.fallback_to_cleanline = true;
                     method = 'cleanline';
-                    helpers.log_msg_default('\tLine Noise Removal: Zapline did not work optimally, using cleanline in next step.');
+                    helpers.log_msg_default(sprintf('\tLine Noise Removal: Noise ratio after Zapline above specified threshold (%s) , using cleanline in next step.', string(step_cfg.line_noise_ratio)));
                 else
-                    helpers.log_msg_default(sprintf('\tLine Noise Removal: WARNING Zapline applied, remaining noise ratio %s.', clean_log.zapline.analytics.ratioNoiseClean));
+                    helpers.log_msg_default(sprintf('\tLine Noise Removal: WARNING Zapline applied, remaining noise ratio %.2f.', clean_log.zapline.analytics.ratioNoiseClean(1)));
                 end
             else
-                helpers.log_msg_default(sprintf('\tLine Noise Removal: Zapline applied succesfully. Noise ratio %s.', clean_log.zapline.analytics.ratioNoiseClean));
+                helpers.log_msg_default(sprintf('\tLine Noise Removal: Zapline applied succesfully. Noise ratio %.2f.', clean_log.zapline.analytics.ratioNoiseClean(1)));
             end
         end
     end
@@ -4207,9 +4207,13 @@ try
 
             clean_log.cleanline.analytics.cleanSpectrumLog = pxx_log_after;
             clean_log.cleanline.analytics.ratioNoiseBefore = [];
-            clean_log.cleanline.analytics.ratioNoiseAfter = [];
+            clean_log.cleanline.analytics.ratioNoiseAfter  = [];
 
-            for f = freqs % calculate noise ratio for each frequency and append to log
+            for f = freqs % calculate noise ratio for each frequency and append to log (same logic as zapline)
+                noise_idx = psd_freqs>f-0.5 & psd_freqs<f+0.5; % indeces of frequencies within 0.5 of noise frequency
+                surround_idx = (psd_freqs>f-(detect_winSize/2) & psd_freqs<f-(detect_winSize/6)) |...
+                (psd_freqs>f+(detect_winSize/6) & psd_freqs<f+(detect_winSize/2));
+                clean_log.cleanline.analytics.ratioNoiseBefore(end+1)  = 10^((mean(mean(pxx_log_before(noise_idx,:),2)) - mean(pxx_log_before(surround_idx,:),'all'))/10);
                 clean_log.cleanline.analytics.ratioNoiseAfter(end+1)  = 10^((mean(mean(pxx_log_after(noise_idx,:),2)) - mean(pxx_log_after(surround_idx,:),'all'))/10);
             end
 
