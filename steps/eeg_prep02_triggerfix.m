@@ -70,12 +70,18 @@ try
             end
         catch
         end
-                if isfield(tf, 'enable_first_match_replacements')
+        
+        if isfield(tf, 'enable_first_match_replacements')
             step_cfg.enable_first_match_replacements = logical(tf.enable_first_match_replacements);
         else
             step_cfg.enable_first_match_replacements = true; % Default
         end
         
+        if isfield(tf, 'enable_conditional_replacements')
+            step_cfg.enable_conditional_replacements = ...
+            logical(tf.enable_conditional_replacements);
+        end
+
         if isfield(tf, 'phase_strategy')
             step_cfg.phase_strategy = string(tf.phase_strategy);
         end
@@ -101,7 +107,11 @@ try
         else
             step_cfg.use_gating_from_start_markers = true;
         end
-        
+
+        if isfield(tf, 'conditional_replacements')
+            step_cfg.conditional_replacements = tf.conditional_replacements;
+        end
+
         %step cfg fields
         if isfield(tf,'run_raw_order_qc'); step_cfg.run_raw_order_qc = logical(tf.run_raw_order_qc); end
         if isfield(tf,'allow_multiple_runs'); step_cfg.allow_multiple_runs = logical(tf.allow_multiple_runs); end
@@ -408,6 +418,15 @@ try
         EEG = eeg_checkset(EEG);
         EEG = helpers.normalize_event_types(EEG);
 
+        %Saving original trigger sequence for conditional renaming
+        raw_event_types = cell(1, numel(EEG.event));
+
+        for k = 1:numel(EEG.event)
+            event_type_raw = EEG.event(k).type;
+            event_type_normalized = helpers.normalize_trigger_type(event_type_raw);
+            raw_event_types{k} = event_type_normalized;
+        end
+
         % Print unique normalized event types
         try
             types = strings(0);
@@ -600,6 +619,147 @@ try
                 sprintf('prep02_triggerfix: NO-PHASES -> global category blocking applied for sub-%s', subj_id));
             EEG = eeg_checkset(EEG);
 
+            % ---- Conditional replacements based on an earlier raw event ----
+        %
+        % Each rule can contain:
+        %   match_code       event to replace, matched against the ORIGINAL trigger
+        %   previous_code    required earlier trigger, also matched against the ORIGINAL trigger
+        %   previous_n       how many non-boundary triggers back to look (default: 1)
+        %   replace_code     replacement event type
+        %   max_replacements maximum number of applications (default: 1; Inf = unlimited)
+
+       if step_cfg.enable_conditional_replacements && ...
+        isfield(step_cfg, 'conditional_replacements') && ...
+        ~isempty(step_cfg.conditional_replacements)
+        
+            replacements = step_cfg.conditional_replacements;
+        
+            % Accept either a cell array of rules or a struct array of rules.
+            if isstruct(replacements)
+                rule_cells = cell(numel(replacements), 1);
+                for r = 1:numel(replacements)
+                    rule_cells{r} = replacements(r);
+                end
+                replacements = rule_cells;
+            elseif ~iscell(replacements)
+                error(['Step 02: conditional_replacements must be a cell array ' ...
+                    'or a struct array of rules.']);
+            end
+        
+            n_done = zeros(numel(replacements), 1);
+            conditional_log = strings(0, 1);
+        
+            for x = 1:numel(EEG.event)
+        
+                % Use the event's ORIGINAL type, not a type changed by blocking.
+                current_raw = raw_event_types{x};
+        
+                for r = 1:numel(replacements)
+        
+                    rule = replacements{r};
+        
+                    if ~isstruct(rule) || ~isscalar(rule)
+                        error('Step 02: conditional replacement rule %d must be a scalar struct.', r);
+                    end
+        
+                    if ~isfield(rule, 'match_code') || ...
+                            ~isfield(rule, 'previous_code') || ...
+                            ~isfield(rule, 'replace_code')
+                        error(['Step 02: conditional replacement rule %d must define ' ...
+                            'match_code, previous_code, and replace_code.'], r);
+                    end
+        
+                    max_n = getfield_default(rule, 'max_replacements', 1);
+                    max_n = double(max_n);
+        
+                    if ~isscalar(max_n) || isnan(max_n) || max_n < 0
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'max_replacements value. Use a non-negative number or Inf.'], r);
+                    end
+        
+                    if n_done(r) >= max_n
+                        continue;
+                    end
+        
+                    previous_n = getfield_default(rule, 'previous_n', 1);
+                    previous_n = double(previous_n);
+        
+                    if ~isscalar(previous_n) || ~isfinite(previous_n) || ...
+                            previous_n < 1 || previous_n ~= round(previous_n)
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'previous_n. It must be a positive integer.'], r);
+                    end
+        
+                    match_code_raw = rule.match_code;
+                    match_code = helpers.normalize_trigger_type(match_code_raw);
+        
+                    previous_code_raw = rule.previous_code;
+                    previous_code = helpers.normalize_trigger_type(previous_code_raw);
+        
+                    replace_code_raw = rule.replace_code;
+                    replace_code = helpers.normalize_trigger_type(replace_code_raw);
+        
+                    if isempty(match_code) || isempty(previous_code) || isempty(replace_code)
+                        error(['Step 02: conditional replacement rule %d contains an empty ' ...
+                            'match_code, previous_code, or replace_code.'], r);
+                    end
+        
+                    % Find the Nth previous non-empty, non-boundary raw trigger.
+                    prev_idx = x - 1;
+                    n_found = 0;
+                    previous_raw = '';
+        
+                    while prev_idx >= 1 && n_found < previous_n
+                        candidate = raw_event_types{prev_idx};
+        
+                        if ~isempty(candidate) && ~strcmpi(candidate, 'boundary')
+                            n_found = n_found + 1;
+        
+                            if n_found == previous_n
+                                previous_raw = candidate;
+                                break;
+                            end
+                        end
+        
+                        prev_idx = prev_idx - 1;
+                    end
+        
+                    % Not enough preceding triggers in the recording.
+                    if n_found < previous_n
+                        continue;
+                    end
+        
+                    if strcmp(current_raw, match_code) && ...
+                            strcmp(previous_raw, previous_code)
+        
+                        EEG.event(x).type = char(replace_code);
+                        n_done(r) = n_done(r) + 1;
+        
+                        % Apply at most one conditional rule to this event.
+                        break;
+                    end
+                end
+            end
+        
+            % Log how many times each rule was applied.
+            for r = 1:numel(replacements)
+                rule = replacements{r};
+                max_n = getfield_default(rule, 'max_replacements', 1);
+                previous_n = getfield_default(rule, 'previous_n', 1);
+        
+                helpers.log_msg_default( ...
+                    ['Step 02 conditional replacement rule %d: "%s" -> "%s" ' ...
+                     'when trigger %d back is "%s" | applied=%d | max=%s'], ...
+                    r, ...
+                    char(helpers.normalize_trigger_type(rule.match_code)), ...
+                    char(helpers.normalize_trigger_type(rule.replace_code)), ...
+                    double(previous_n), ...
+                    char(helpers.normalize_trigger_type(rule.previous_code)), ...
+                    n_done(r), ...
+                    char(string(max_n)));
+            end
+        end        
+            
             % SAVE OUTPUT and end Step 02
             out_base = bids_base;
             EEG.setname = sprintf('%s_triggersfixed', out_base);
@@ -1222,7 +1382,146 @@ end
                                 end
                             end
                 
-                
+        % ---- Conditional replacements based on an earlier raw event ----
+        %
+        % Each rule can contain:
+        %   match_code       event to replace, matched against the ORIGINAL trigger
+        %   previous_code    required earlier trigger, also matched against the ORIGINAL trigger
+        %   previous_n       how many non-boundary triggers back to look (default: 1)
+        %   replace_code     replacement event type
+        %   max_replacements maximum number of applications (default: 1; Inf = unlimited)
+
+      if step_cfg.enable_conditional_replacements && ...
+        isfield(step_cfg, 'conditional_replacements') && ...
+        ~isempty(step_cfg.conditional_replacements)
+        
+            replacements = step_cfg.conditional_replacements;
+        
+            % Accept either a cell array of rules or a struct array of rules.
+            if isstruct(replacements)
+                rule_cells = cell(numel(replacements), 1);
+                for r = 1:numel(replacements)
+                    rule_cells{r} = replacements(r);
+                end
+                replacements = rule_cells;
+            elseif ~iscell(replacements)
+                error(['Step 02: conditional_replacements must be a cell array ' ...
+                    'or a struct array of rules.']);
+            end
+        
+            n_done = zeros(numel(replacements), 1);
+            conditional_log = strings(0, 1);
+        
+            for x = 1:numel(EEG.event)
+        
+                % Use the event's ORIGINAL type, not a type changed by blocking.
+                current_raw = raw_event_types{x};
+        
+                for r = 1:numel(replacements)
+        
+                    rule = replacements{r};
+        
+                    if ~isstruct(rule) || ~isscalar(rule)
+                        error('Step 02: conditional replacement rule %d must be a scalar struct.', r);
+                    end
+        
+                    if ~isfield(rule, 'match_code') || ...
+                            ~isfield(rule, 'previous_code') || ...
+                            ~isfield(rule, 'replace_code')
+                        error(['Step 02: conditional replacement rule %d must define ' ...
+                            'match_code, previous_code, and replace_code.'], r);
+                    end
+        
+                    max_n = getfield_default(rule, 'max_replacements', 1);
+                    max_n = double(max_n);
+        
+                    if ~isscalar(max_n) || isnan(max_n) || max_n < 0
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'max_replacements value. Use a non-negative number or Inf.'], r);
+                    end
+        
+                    if n_done(r) >= max_n
+                        continue;
+                    end
+        
+                    previous_n = getfield_default(rule, 'previous_n', 1);
+                    previous_n = double(previous_n);
+        
+                    if ~isscalar(previous_n) || ~isfinite(previous_n) || ...
+                            previous_n < 1 || previous_n ~= round(previous_n)
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'previous_n. It must be a positive integer.'], r);
+                    end
+        
+                    match_code_raw = rule.match_code;
+                    match_code = helpers.normalize_trigger_type(match_code_raw);
+        
+                    previous_code_raw = rule.previous_code;
+                    previous_code = helpers.normalize_trigger_type(previous_code_raw);
+        
+                    replace_code_raw = rule.replace_code;
+                    replace_code = helpers.normalize_trigger_type(replace_code_raw);
+        
+                    if isempty(match_code) || isempty(previous_code) || isempty(replace_code)
+                        error(['Step 02: conditional replacement rule %d contains an empty ' ...
+                            'match_code, previous_code, or replace_code.'], r);
+                    end
+        
+                    % Find the Nth previous non-empty, non-boundary raw trigger.
+                    prev_idx = x - 1;
+                    n_found = 0;
+                    previous_raw = '';
+        
+                    while prev_idx >= 1 && n_found < previous_n
+                        candidate = raw_event_types{prev_idx};
+        
+                        if ~isempty(candidate) && ~strcmpi(candidate, 'boundary')
+                            n_found = n_found + 1;
+        
+                            if n_found == previous_n
+                                previous_raw = candidate;
+                                break;
+                            end
+                        end
+        
+                        prev_idx = prev_idx - 1;
+                    end
+        
+                    % Not enough preceding triggers in the recording.
+                    if n_found < previous_n
+                        continue;
+                    end
+        
+                    if strcmp(current_raw, match_code) && ...
+                            strcmp(previous_raw, previous_code)
+        
+                        EEG.event(x).type = char(replace_code);
+                        n_done(r) = n_done(r) + 1;
+        
+                        % Apply at most one conditional rule to this event.
+                        break;
+                    end
+                end
+            end
+        
+            % Log how many times each rule was applied.
+            for r = 1:numel(replacements)
+                rule = replacements{r};
+                max_n = getfield_default(rule, 'max_replacements', 1);
+                previous_n = getfield_default(rule, 'previous_n', 1);
+        
+                helpers.log_msg_default( ...
+                    ['Step 02 conditional replacement rule %d: "%s" -> "%s" ' ...
+                     'when trigger %d back is "%s" | applied=%d | max=%s'], ...
+                    r, ...
+                    char(helpers.normalize_trigger_type(rule.match_code)), ...
+                    char(helpers.normalize_trigger_type(rule.replace_code)), ...
+                    double(previous_n), ...
+                    char(helpers.normalize_trigger_type(rule.previous_code)), ...
+                    n_done(r), ...
+                    char(string(max_n)));
+            end
+        end        
         % ---- PASS X: generic first-match replacements ----
         if isfield(step_cfg, 'enable_first_match_replacements')
             run_replacements = logical(step_cfg.enable_first_match_replacements);
@@ -1417,6 +1716,10 @@ step_cfg.trigger_phase_min_phases_with_remaps = 2;
 % Optional enabling flags / generic defaults
 step_cfg.enable_first_match_replacements = true;
 step_cfg.use_gating_from_start_markers   = true;
+
+%Conditional replacement default
+step_cfg.conditional_replacements = {};
+step_cfg.enable_conditional_replacements = true;
 
 % Blocking default 
 step_cfg.blocking = struct();

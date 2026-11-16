@@ -247,7 +247,7 @@ end
 % SUBJECTS
 % =========================================================================
 cfg.subjects = struct();
-cfg.subjects.list   = [ ]; % explicit subject list, e.g. {'211','212'}, leave 
+cfg.subjects.list   = []; % explicit subject list, e.g. {'211','212'}, leave 
 % empty to autodetect from source_eeg_root using cfg.constants.valid_sub_id_regex
 cfg.subjects.min_id = []; % process all subjects with a higher ID than...
 % numeric/string ID, no lower cutoff if left empty 
@@ -434,8 +434,18 @@ cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawB = " ";
 cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawC = " ";   
 cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawD = " ";   
 
+%%% 3) Conditional replacement
+cfg.paradigms.myParadigm.triggerfix.enable_conditional_replacements = false;
+cfg.paradigms.myParadigm.triggerfix.conditional_replacements = { ...
+    struct( ...
+        'match_code',     " ", ...
+        'previous_code',  " ", ...
+        'previous_n',      1,...
+        'replace_code',   " ", ...
+        'max_replacements', Inf) ...
+};
 
-%%% 3) Blocking/Counting:renaming and counting event triggers per phase
+%%% 4) Blocking/Counting:renaming and counting event triggers per phase
 cfg.paradigms.myParadigm.triggerfix.blocking = struct();
 cfg.paradigms.myParadigm.triggerfix.blocking.count_scope = " "; 
 % global for counting across all trials (e.g. with your paradigm does not include phases); 
