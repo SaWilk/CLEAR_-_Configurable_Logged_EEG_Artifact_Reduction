@@ -830,7 +830,7 @@ cfg.prep_03.ica_prep_faster_ptp_epoch_rejection.faster_z     = 4;
 cfg.prep_03.ica_prep_faster_ptp_epoch_rejection.use_robust_z = true;
 
 cfg.prep_03.ica_prep_faster_ptp_epoch_rejection.use_ptp       = true;
-cfg.prep_03.ica_prep_faster_ptp_epoch_rejection.ptp_uV_thresh = 100;
+cfg.prep_03.ica_prep_faster_ptp_epoch_rejection.ptp_uV_thresh = 300;
 
 % 1.00 means disabled. Example: 0.50 would stop Step 03 if >50% of
 % ICA-training epochs are removed.
