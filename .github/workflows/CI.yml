@@ -16,7 +16,32 @@ jobs:
     
     steps:
       - uses: actions/checkout@v6
-      
+        with:
+          fetch-depth: 0
+
+      - name: Check README is updated when files are added to test suite
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+
+          added_test_files=$(git diff --diff-filter=A --name-only "$BASE_SHA" "$HEAD_SHA" -- tests/)
+
+          if [[ -z "$added_test_files" ]]; then
+            echo "No new files in test suite; skipping README check."
+            exit 0
+          fi
+
+          changed_test_readmes=$(git diff --diff-filter=ACMRT --name-only "$BASE_SHA" "$HEAD_SHA" |
+            grep -iE '^tests/(.*/)?[^/]*readme[^/]*$' || true)
+
+          if [[ -z "$changed_test_readmes" ]]; then
+            echo "New file(s) added under tests/, but no update in TEST_README file. Please add a short description of the new test(s) in the TEST_README"
+            exit 1
+          fi
+          
       # Set up MATLAB and other MathWorks products on the runner.
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v3
