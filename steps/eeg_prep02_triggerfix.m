@@ -70,7 +70,7 @@ try
             end
         catch
         end
-        
+
         if isfield(tf, 'enable_first_match_replacements')
             step_cfg.enable_first_match_replacements = logical(tf.enable_first_match_replacements);
         else
@@ -358,7 +358,8 @@ try
         k = char(rk{ii});
         helpers.log_msg_default('Step 02: step_cfg.raw_triggers.%s = "%s"', k, char(string(rt.(k))));
     end
-    catch, end
+    catch
+    end
 
     % computed cat_raw_tok
     try
@@ -367,14 +368,11 @@ try
             k = char(ck{ii});
             %helpers.log_msg_default('Step 02 DEBUG: cat_raw_tok.%s = "%s"', k, char(string(cat_raw_tok.(k))));
         end
-    catch, end
-    
-    
-    try
-        %helpers.log_msg_default('Step 02 DEBUG: catNames = %s', strjoin(string(catNames), ', '));
-    catch, end
-        cat_counter = struct();
-        cat_counter_phase = struct();
+    catch
+    end
+   
+       cat_counter = struct();
+       cat_counter_phase = struct();
 
     % =====================================================================
     % MAIN LOOP over vhdr
@@ -396,7 +394,7 @@ try
             output_check_cfg.io.overwrite_if_older_than = string(step_cfg.overwrite_if_older_than);
         end
 
-        [do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);
+        %[do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);
         if ~do_run
             out_files(end+1,1) = string(out_set_file_char); %#ok<AGROW>
             continue;
@@ -551,11 +549,12 @@ try
                     n = cat_counter.(cat);
 
                     % track found count per category
-                    if ~isfield(cat_total_found, cat); cat_total_found.(cat) = 0; end
+                if ~isfield(cat_total_found, cat); cat_total_found.(cat) = 0; end
                     cat_total_found.(cat) = cat_total_found.(cat) + 1;
                     % select matching block
                     cum = 0;
                     new_code = "";
+                    
                     for bi = 1:numel(blocks)
                     bi_n = blocks{bi}.n;
                         if isempty(bi_n); continue; end
@@ -564,8 +563,8 @@ try
                         if n <= cum
                         new_code = blocks{bi}.code;
                         break;
+                        end
                     end
-                end
                 
                 % determine target label for reporting
                 if strlength(string(new_code)) > 0
@@ -586,8 +585,6 @@ try
                 end
                 cat_remap_to.(catKey_log).(targetKey_log) = cat_remap_to.(catKey_log).(targetKey_log) + 1;
 
-                before = helpers.normalize_trigger_type(EEG.event(x).type);
-        
                 if strlength(string(new_code)) > 0
                     EEG.event(x).type = char(string(new_code));
                 else
@@ -775,12 +772,6 @@ try
             step_out.message = sprintf('Processed 1 trigger-fixed set for sub-%s (NO-PHASES fast path).', subj_id);
             helpers.log_msg_default('%s', step_out.message);
             continue;
-
-                    
-            % PRIMARY/FALLBACK skip
-            do_trigger = false;
-            do_block   = false;
-            trigger_then_fallback = false;
         end
         
         
@@ -832,7 +823,7 @@ try
         
                 cat_counter_phase_primary = struct();
         
-                for x = 1:numel(EEGp.event)
+    for x = 1:numel(EEGp.event)
                     current_type = helpers.normalize_trigger_type(EEGp.event(x).type);
         
                     % --- phase update from trigger ---
@@ -950,7 +941,7 @@ try
                         end
                     end
                    
-                    if ~strcmp(after, before)
+                if ~strcmp(after, before)
 
                         n_remaps_primary_total = n_remaps_primary_total + 1;
 
@@ -988,8 +979,8 @@ try
                             remap_counts_primary(key_ba) = 0;
                         end
                         remap_counts_primary(key_ba) = remap_counts_primary(key_ba) + 1;
-                                            end
                 end
+    end
                     start_counts = cell2mat(struct2cell(phase_start_seen_counts));
                     n_start_total = sum(start_counts);
                     min_start_markers = double(step_cfg.trigger_phase_min_start_markers);
@@ -1278,7 +1269,7 @@ end
         % =====================================================================
         % TRIGGER REMAP SUMMARY 
         % =====================================================================
-        if step_cfg.log_summary_only
+    if step_cfg.log_summary_only
             % PRIMARY
             if n_remaps_primary_total > 0
                 helpers.log_msg_default('Step 02 SUMMARY PRIMARY trigger remaps (before->after): total=%d', n_remaps_primary_total);
@@ -1299,7 +1290,7 @@ end
             end
         
             % FALLBACK
-            if exist('n_remaps_fallback_total','var') && n_remaps_fallback_total > 0
+        if exist('n_remaps_fallback_total','var') && n_remaps_fallback_total > 0
 
             fb_keys = remap_counts_fallback.keys;   % correct for containers.Map
         
@@ -1379,8 +1370,8 @@ end
             
                 helpers.log_msg_default('  FALLBACK: "%s" -> "%s" : n=%d', before, after, cnt);
             end
-                                end
-                            end
+            end
+    end
                 
         % ---- Conditional replacements based on an earlier raw event ----
         %
@@ -1391,7 +1382,7 @@ end
         %   replace_code     replacement event type
         %   max_replacements maximum number of applications (default: 1; Inf = unlimited)
 
-      if step_cfg.enable_conditional_replacements && ...
+    if step_cfg.enable_conditional_replacements && ...
         isfield(step_cfg, 'conditional_replacements') && ...
         ~isempty(step_cfg.conditional_replacements)
         
@@ -1521,7 +1512,7 @@ end
                     n_done(r), ...
                     char(string(max_n)));
             end
-        end        
+    end        
         % ---- PASS X: generic first-match replacements ----
         if isfield(step_cfg, 'enable_first_match_replacements')
             run_replacements = logical(step_cfg.enable_first_match_replacements);
