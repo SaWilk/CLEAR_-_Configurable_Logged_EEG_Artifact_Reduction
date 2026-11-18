@@ -137,7 +137,7 @@ Defaults:
 - Highpass filter: 0.1Hz
 - Lowpass filter: 40Hz
 - automatic bad channel detection: channel variance/z-score > 2.5, flatline ≥ 5 s or channel correlation < 0.80; spherical interpolation before ICA for EEG-channels, dead/invalid AUX channels are removed
-- linenoise removal via cleanline (EEGLab)
+- linenoise removal via zapline-plus and fallback to cleanline (EEGLab)
 - epoch rejection via ERPLab: exclude voltage over 300uV, sample-to-sample voltage jumps over 75, flatlines (within 0.5uV) of over 200ms
 
 ------------------------------
