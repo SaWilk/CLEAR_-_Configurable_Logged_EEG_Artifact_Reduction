@@ -394,7 +394,7 @@ try
             output_check_cfg.io.overwrite_if_older_than = string(step_cfg.overwrite_if_older_than);
         end
 
-        %[do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);
+        [do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);
         if ~do_run
             out_files(end+1,1) = string(out_set_file_char); %#ok<AGROW>
             continue;
