@@ -115,7 +115,7 @@ cfg.config_file     = string(config_file);
 if nargin > 1
     subject_args = varargin;
 
-    if numel(subject_args) == 1 && iscell(subject_args{1})
+    if numel(subject_args) && 1 && iscell(subject_args{1})
         cfg.subjects.list = subject_args{1};
     else
         cfg.subjects.list = subject_args;
@@ -413,8 +413,7 @@ if force_serial_due_to_amica
                 'WARNING: Could not close pool after forcing serial mode (%s).', ...
                 me_close.message);
         end
-        pool_obj = [];
-        pool_started_here = false;
+        
     end
 end
 
@@ -446,7 +445,7 @@ end
 
 if use_parallel
     parfor i = 1:n_sub
-        status(i) = helpers.run_one_subject(subject_plans(i), cfg); %#ok<PFOUS>
+        status(i) = helpers.run_one_subject(subject_plans(i), cfg); 
     end
     
 else
