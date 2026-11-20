@@ -356,6 +356,8 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in 
 %   Settings:
 %    - use_gating_from_start_markers = false
 %    - name triggers per category 
+%    - optional: enable_conditional_replacements = true and add conditional
+%                replacement rule
 %    - blocking.count_scope = "global"
 %    - fill triggerfix.blocking.category to rename triggers
 %    - set enable_first_match_replacements = false
@@ -367,6 +369,8 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in 
 %    - Fill gates.start_markers. accordingly with phase numbers and start
 %       markers, e.g. 'phase1',    "S 92", ...
 %    - name triggers per category
+%    - enable_conditional_replacements = false; only works across phases
+%                                               not within phases!
 %    - blocking.count_scope = "phase"
 %    - define each category in blocking and optionally override its blocks
 %      for individual phases in phase_specific_trigger_renaming_rules
