@@ -365,14 +365,14 @@ try
     try
         ck = fieldnames(cat_raw_tok);
         for ii = 1:numel(ck)
-            k = char(ck{ii});
+            k = char(ck{ii});%#ok
             %helpers.log_msg_default('Step 02 DEBUG: cat_raw_tok.%s = "%s"', k, char(string(cat_raw_tok.(k))));
         end
     catch
     end
    
-       cat_counter = struct();
-       cat_counter_phase = struct();
+       cat_counter = struct();%#ok
+       cat_counter_phase = struct();%#ok
 
     % =====================================================================
     % MAIN LOOP over vhdr
@@ -394,7 +394,7 @@ try
             output_check_cfg.io.overwrite_if_older_than = string(step_cfg.overwrite_if_older_than);
         end
 
-        [do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);
+        [do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);%#ok
         if ~do_run
             out_files(end+1,1) = string(out_set_file_char); %#ok<AGROW>
             continue;
@@ -429,7 +429,7 @@ try
         try
             types = strings(0);
             for ii = 1:numel(EEG.event)
-                types(end+1,1) = helpers.normalize_trigger_type(EEG.event(ii).type);
+                types(end+1,1) = helpers.normalize_trigger_type(EEG.event(ii).type);%#ok
             end
             u = unique(types);
             helpers.log_msg_default('Step 02: unique normalized event types count=%d', numel(u));
@@ -454,11 +454,11 @@ try
                 qc_cfg.behavior_log_map           = step_cfg.behavior_log_map;
                 qc_cfg.raw_triggers               = step_cfg.raw_triggers;
 
-                qc_ok_beh = true;
-                rep_beh = struct();
+                qc_ok_beh = true;%#ok
+                rep_beh = struct(); %#ok
                 
-                [qc_ok_beh, rep_beh] = helpers.raw_qc_behavior_vs_eeg_and_write_csv( ...
-                    beh, EEG, subj_id, bids_base, char(qc_out_dir), qc_cfg);
+                [qc_ok_beh, rep_beh] = helpers.raw_qc_behavior_vs_eeg_and_write_csv( ... 
+                    beh, EEG, subj_id, bids_base, char(qc_out_dir), qc_cfg);%#ok
             catch me_qc
                 helpers.log_msg_default('WARNING: Step 02 RAW QC failed for %s (sub-%s). Reason: %s', ...
                     bids_base, subj_id, me_qc.message);
@@ -478,8 +478,8 @@ try
         %   "trigger_then_block_fallback"
         phase_strategy = string(step_cfg.phase_strategy);
         
-        do_trigger = false;
-        do_block   = false;
+        do_trigger = false;%#ok
+        do_block   = false; %#ok
         trigger_then_fallback = false;
         
         switch lower(strtrim(phase_strategy))
@@ -644,7 +644,7 @@ try
             end
         
             n_done = zeros(numel(replacements), 1);
-            conditional_log = strings(0, 1);
+            conditional_log = strings(0, 1); %#ok
         
             for x = 1:numel(EEG.event)
         
@@ -763,10 +763,10 @@ try
             fname = sprintf('%s_triggersfixed.set', out_base);
             paths_out_dir = paths.prep_02_out_dir;
             
-            EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg);
+            EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg); %#ok
             helpers.log_msg_default('Step 02: saved %s', fullfile(paths_out_dir, fname));
             
-            out_files(end+1,1) = string(out_set_file_char);
+            out_files(end+1,1) = string(out_set_file_char); %#ok
             
             step_out.ok = true;
             step_out.message = sprintf('Processed 1 trigger-fixed set for sub-%s (NO-PHASES fast path).', subj_id);
@@ -798,7 +798,7 @@ try
         n_remaps_primary_by_phase_and_cat = struct();
         seen_after_codes_primary = struct();
         remap_counts_primary = containers.Map('KeyType','char','ValueType','double');
-        phases_with_remaps_count = 0;
+        phases_with_remaps_count = 0; %#ok
         
         % Primary only meaningful if count_scope is phase and we have phase markers
         %if do_trigger && count_scope == "phase" && has_any_phase_marker
@@ -1401,7 +1401,7 @@ end
             end
         
             n_done = zeros(numel(replacements), 1);
-            conditional_log = strings(0, 1);
+            conditional_log = strings(0, 1); %#ok
         
             for x = 1:numel(EEG.event)
         
@@ -1619,7 +1619,7 @@ end
         fname = sprintf('%s_triggersfixed.set', out_base);
         paths_out_dir = paths.prep_02_out_dir;
 
-        EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg);
+        EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg); %#ok
 
         helpers.log_msg_default('Step 02: saved %s', fullfile(paths_out_dir, fname));
 
@@ -1640,7 +1640,7 @@ end
         step_out.message = 'All matching outputs already existed and were skipped.';
     else
         step_out.out_set_file = char(out_files(1));
-        if numel(out_files) == 1
+        if numel(out_files) == 1 %#ok
             step_out.message = sprintf('Processed 1 trigger-fixed set for sub-%s.', subj_id);
         else
             step_out.message = sprintf('Processed %d trigger-fixed sets for sub-%s.', numel(out_files), subj_id);
