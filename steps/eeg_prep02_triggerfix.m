@@ -70,12 +70,18 @@ try
             end
         catch
         end
-                if isfield(tf, 'enable_first_match_replacements')
+
+        if isfield(tf, 'enable_first_match_replacements')
             step_cfg.enable_first_match_replacements = logical(tf.enable_first_match_replacements);
         else
             step_cfg.enable_first_match_replacements = true; % Default
         end
         
+        if isfield(tf, 'enable_conditional_replacements')
+            step_cfg.enable_conditional_replacements = ...
+            logical(tf.enable_conditional_replacements);
+        end
+
         if isfield(tf, 'phase_strategy')
             step_cfg.phase_strategy = string(tf.phase_strategy);
         end
@@ -101,7 +107,11 @@ try
         else
             step_cfg.use_gating_from_start_markers = true;
         end
-        
+
+        if isfield(tf, 'conditional_replacements')
+            step_cfg.conditional_replacements = tf.conditional_replacements;
+        end
+
         %step cfg fields
         if isfield(tf,'run_raw_order_qc'); step_cfg.run_raw_order_qc = logical(tf.run_raw_order_qc); end
         if isfield(tf,'allow_multiple_runs'); step_cfg.allow_multiple_runs = logical(tf.allow_multiple_runs); end
@@ -348,23 +358,21 @@ try
         k = char(rk{ii});
         helpers.log_msg_default('Step 02: step_cfg.raw_triggers.%s = "%s"', k, char(string(rt.(k))));
     end
-    catch, end
+    catch
+    end
 
     % computed cat_raw_tok
     try
         ck = fieldnames(cat_raw_tok);
         for ii = 1:numel(ck)
-            k = char(ck{ii});
+            k = char(ck{ii});%#ok
             %helpers.log_msg_default('Step 02 DEBUG: cat_raw_tok.%s = "%s"', k, char(string(cat_raw_tok.(k))));
         end
-    catch, end
-    
-    
-    try
-        %helpers.log_msg_default('Step 02 DEBUG: catNames = %s', strjoin(string(catNames), ', '));
-    catch, end
-        cat_counter = struct();
-        cat_counter_phase = struct();
+    catch
+    end
+   
+       cat_counter = struct();%#ok
+       cat_counter_phase = struct();%#ok
 
     % =====================================================================
     % MAIN LOOP over vhdr
@@ -386,7 +394,7 @@ try
             output_check_cfg.io.overwrite_if_older_than = string(step_cfg.overwrite_if_older_than);
         end
 
-        [do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);
+        [do_run, skip_reason] = helpers.step_should_run_outputs(out_set_file_char, overwrite_mode, output_check_cfg);%#ok
         if ~do_run
             out_files(end+1,1) = string(out_set_file_char); %#ok<AGROW>
             continue;
@@ -408,11 +416,20 @@ try
         EEG = eeg_checkset(EEG);
         EEG = helpers.normalize_event_types(EEG);
 
+        %Saving original trigger sequence for conditional renaming
+        raw_event_types = cell(1, numel(EEG.event));
+
+        for k = 1:numel(EEG.event)
+            event_type_raw = EEG.event(k).type;
+            event_type_normalized = helpers.normalize_trigger_type(event_type_raw);
+            raw_event_types{k} = event_type_normalized;
+        end
+
         % Print unique normalized event types
         try
             types = strings(0);
             for ii = 1:numel(EEG.event)
-                types(end+1,1) = helpers.normalize_trigger_type(EEG.event(ii).type);
+                types(end+1,1) = helpers.normalize_trigger_type(EEG.event(ii).type);%#ok
             end
             u = unique(types);
             helpers.log_msg_default('Step 02: unique normalized event types count=%d', numel(u));
@@ -437,11 +454,11 @@ try
                 qc_cfg.behavior_log_map           = step_cfg.behavior_log_map;
                 qc_cfg.raw_triggers               = step_cfg.raw_triggers;
 
-                qc_ok_beh = true;
-                rep_beh = struct();
+                qc_ok_beh = true;%#ok
+                rep_beh = struct(); %#ok
                 
-                [qc_ok_beh, rep_beh] = helpers.raw_qc_behavior_vs_eeg_and_write_csv( ...
-                    beh, EEG, subj_id, bids_base, char(qc_out_dir), qc_cfg);
+                [qc_ok_beh, rep_beh] = helpers.raw_qc_behavior_vs_eeg_and_write_csv( ... 
+                    beh, EEG, subj_id, bids_base, char(qc_out_dir), qc_cfg);%#ok
             catch me_qc
                 helpers.log_msg_default('WARNING: Step 02 RAW QC failed for %s (sub-%s). Reason: %s', ...
                     bids_base, subj_id, me_qc.message);
@@ -461,8 +478,8 @@ try
         %   "trigger_then_block_fallback"
         phase_strategy = string(step_cfg.phase_strategy);
         
-        do_trigger = false;
-        do_block   = false;
+        do_trigger = false;%#ok
+        do_block   = false; %#ok
         trigger_then_fallback = false;
         
         switch lower(strtrim(phase_strategy))
@@ -532,11 +549,12 @@ try
                     n = cat_counter.(cat);
 
                     % track found count per category
-                    if ~isfield(cat_total_found, cat); cat_total_found.(cat) = 0; end
+                if ~isfield(cat_total_found, cat); cat_total_found.(cat) = 0; end
                     cat_total_found.(cat) = cat_total_found.(cat) + 1;
                     % select matching block
                     cum = 0;
                     new_code = "";
+                    
                     for bi = 1:numel(blocks)
                     bi_n = blocks{bi}.n;
                         if isempty(bi_n); continue; end
@@ -545,8 +563,8 @@ try
                         if n <= cum
                         new_code = blocks{bi}.code;
                         break;
+                        end
                     end
-                end
                 
                 % determine target label for reporting
                 if strlength(string(new_code)) > 0
@@ -567,8 +585,6 @@ try
                 end
                 cat_remap_to.(catKey_log).(targetKey_log) = cat_remap_to.(catKey_log).(targetKey_log) + 1;
 
-                before = helpers.normalize_trigger_type(EEG.event(x).type);
-        
                 if strlength(string(new_code)) > 0
                     EEG.event(x).type = char(string(new_code));
                 else
@@ -600,27 +616,162 @@ try
                 sprintf('prep02_triggerfix: NO-PHASES -> global category blocking applied for sub-%s', subj_id));
             EEG = eeg_checkset(EEG);
 
+            % ---- Conditional replacements based on an earlier raw event ----
+        %
+        % Each rule can contain:
+        %   match_code       event to replace, matched against the ORIGINAL trigger
+        %   previous_code    required earlier trigger, also matched against the ORIGINAL trigger
+        %   previous_n       how many non-boundary triggers back to look (default: 1)
+        %   replace_code     replacement event type
+        %   max_replacements maximum number of applications (default: 1; Inf = unlimited)
+
+       if step_cfg.enable_conditional_replacements && ...
+        isfield(step_cfg, 'conditional_replacements') && ...
+        ~isempty(step_cfg.conditional_replacements)
+        
+            replacements = step_cfg.conditional_replacements;
+        
+            % Accept either a cell array of rules or a struct array of rules.
+            if isstruct(replacements)
+                rule_cells = cell(numel(replacements), 1);
+                for r = 1:numel(replacements)
+                    rule_cells{r} = replacements(r);
+                end
+                replacements = rule_cells;
+            elseif ~iscell(replacements)
+                error(['Step 02: conditional_replacements must be a cell array ' ...
+                    'or a struct array of rules.']);
+            end
+        
+            n_done = zeros(numel(replacements), 1);
+            conditional_log = strings(0, 1); %#ok
+        
+            for x = 1:numel(EEG.event)
+        
+                % Use the event's ORIGINAL type, not a type changed by blocking.
+                current_raw = raw_event_types{x};
+        
+                for r = 1:numel(replacements)
+        
+                    rule = replacements{r};
+        
+                    if ~isstruct(rule) || ~isscalar(rule)
+                        error('Step 02: conditional replacement rule %d must be a scalar struct.', r);
+                    end
+        
+                    if ~isfield(rule, 'match_code') || ...
+                            ~isfield(rule, 'previous_code') || ...
+                            ~isfield(rule, 'replace_code')
+                        error(['Step 02: conditional replacement rule %d must define ' ...
+                            'match_code, previous_code, and replace_code.'], r);
+                    end
+        
+                    max_n = getfield_default(rule, 'max_replacements', 1);
+                    max_n = double(max_n);
+        
+                    if ~isscalar(max_n) || isnan(max_n) || max_n < 0
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'max_replacements value. Use a non-negative number or Inf.'], r);
+                    end
+        
+                    if n_done(r) >= max_n
+                        continue;
+                    end
+        
+                    previous_n = getfield_default(rule, 'previous_n', 1);
+                    previous_n = double(previous_n);
+        
+                    if ~isscalar(previous_n) || ~isfinite(previous_n) || ...
+                            previous_n < 1 || previous_n ~= round(previous_n)
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'previous_n. It must be a positive integer.'], r);
+                    end
+        
+                    match_code_raw = rule.match_code;
+                    match_code = helpers.normalize_trigger_type(match_code_raw);
+        
+                    previous_code_raw = rule.previous_code;
+                    previous_code = helpers.normalize_trigger_type(previous_code_raw);
+        
+                    replace_code_raw = rule.replace_code;
+                    replace_code = helpers.normalize_trigger_type(replace_code_raw);
+        
+                    if isempty(match_code) || isempty(previous_code) || isempty(replace_code)
+                        error(['Step 02: conditional replacement rule %d contains an empty ' ...
+                            'match_code, previous_code, or replace_code.'], r);
+                    end
+        
+                    % Find the Nth previous non-empty, non-boundary raw trigger.
+                    prev_idx = x - 1;
+                    n_found = 0;
+                    previous_raw = '';
+        
+                    while prev_idx >= 1 && n_found < previous_n
+                        candidate = raw_event_types{prev_idx};
+        
+                        if ~isempty(candidate) && ~strcmpi(candidate, 'boundary')
+                            n_found = n_found + 1;
+        
+                            if n_found == previous_n
+                                previous_raw = candidate;
+                                break;
+                            end
+                        end
+        
+                        prev_idx = prev_idx - 1;
+                    end
+        
+                    % Not enough preceding triggers in the recording.
+                    if n_found < previous_n
+                        continue;
+                    end
+        
+                    if strcmp(current_raw, match_code) && ...
+                            strcmp(previous_raw, previous_code)
+        
+                        EEG.event(x).type = char(replace_code);
+                        n_done(r) = n_done(r) + 1;
+        
+                        % Apply at most one conditional rule to this event.
+                        break;
+                    end
+                end
+            end
+        
+            % Log how many times each rule was applied.
+            for r = 1:numel(replacements)
+                rule = replacements{r};
+                max_n = getfield_default(rule, 'max_replacements', 1);
+                previous_n = getfield_default(rule, 'previous_n', 1);
+        
+                helpers.log_msg_default( ...
+                    ['Step 02 conditional replacement rule %d: "%s" -> "%s" ' ...
+                     'when trigger %d back is "%s" | applied=%d | max=%s'], ...
+                    r, ...
+                    char(helpers.normalize_trigger_type(rule.match_code)), ...
+                    char(helpers.normalize_trigger_type(rule.replace_code)), ...
+                    double(previous_n), ...
+                    char(helpers.normalize_trigger_type(rule.previous_code)), ...
+                    n_done(r), ...
+                    char(string(max_n)));
+            end
+        end        
+            
             % SAVE OUTPUT and end Step 02
             out_base = bids_base;
             EEG.setname = sprintf('%s_triggersfixed', out_base);
             fname = sprintf('%s_triggersfixed.set', out_base);
             paths_out_dir = paths.prep_02_out_dir;
             
-            EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg);
+            EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg); %#ok
             helpers.log_msg_default('Step 02: saved %s', fullfile(paths_out_dir, fname));
             
-            out_files(end+1,1) = string(out_set_file_char);
+            out_files(end+1,1) = string(out_set_file_char); %#ok
             
             step_out.ok = true;
             step_out.message = sprintf('Processed 1 trigger-fixed set for sub-%s (NO-PHASES fast path).', subj_id);
             helpers.log_msg_default('%s', step_out.message);
             continue;
-
-                    
-            % PRIMARY/FALLBACK skip
-            do_trigger = false;
-            do_block   = false;
-            trigger_then_fallback = false;
         end
         
         
@@ -647,7 +798,7 @@ try
         n_remaps_primary_by_phase_and_cat = struct();
         seen_after_codes_primary = struct();
         remap_counts_primary = containers.Map('KeyType','char','ValueType','double');
-        phases_with_remaps_count = 0;
+        phases_with_remaps_count = 0; %#ok
         
         % Primary only meaningful if count_scope is phase and we have phase markers
         %if do_trigger && count_scope == "phase" && has_any_phase_marker
@@ -672,7 +823,7 @@ try
         
                 cat_counter_phase_primary = struct();
         
-                for x = 1:numel(EEGp.event)
+    for x = 1:numel(EEGp.event)
                     current_type = helpers.normalize_trigger_type(EEGp.event(x).type);
         
                     % --- phase update from trigger ---
@@ -790,7 +941,7 @@ try
                         end
                     end
                    
-                    if ~strcmp(after, before)
+                if ~strcmp(after, before)
 
                         n_remaps_primary_total = n_remaps_primary_total + 1;
 
@@ -828,8 +979,8 @@ try
                             remap_counts_primary(key_ba) = 0;
                         end
                         remap_counts_primary(key_ba) = remap_counts_primary(key_ba) + 1;
-                                            end
                 end
+    end
                     start_counts = cell2mat(struct2cell(phase_start_seen_counts));
                     n_start_total = sum(start_counts);
                     min_start_markers = double(step_cfg.trigger_phase_min_start_markers);
@@ -1118,7 +1269,7 @@ end
         % =====================================================================
         % TRIGGER REMAP SUMMARY 
         % =====================================================================
-        if step_cfg.log_summary_only
+    if step_cfg.log_summary_only
             % PRIMARY
             if n_remaps_primary_total > 0
                 helpers.log_msg_default('Step 02 SUMMARY PRIMARY trigger remaps (before->after): total=%d', n_remaps_primary_total);
@@ -1139,7 +1290,7 @@ end
             end
         
             % FALLBACK
-            if exist('n_remaps_fallback_total','var') && n_remaps_fallback_total > 0
+        if exist('n_remaps_fallback_total','var') && n_remaps_fallback_total > 0
 
             fb_keys = remap_counts_fallback.keys;   % correct for containers.Map
         
@@ -1219,10 +1370,149 @@ end
             
                 helpers.log_msg_default('  FALLBACK: "%s" -> "%s" : n=%d', before, after, cnt);
             end
-                                end
+            end
+    end
+                
+        % ---- Conditional replacements based on an earlier raw event ----
+        %
+        % Each rule can contain:
+        %   match_code       event to replace, matched against the ORIGINAL trigger
+        %   previous_code    required earlier trigger, also matched against the ORIGINAL trigger
+        %   previous_n       how many non-boundary triggers back to look (default: 1)
+        %   replace_code     replacement event type
+        %   max_replacements maximum number of applications (default: 1; Inf = unlimited)
+
+    if step_cfg.enable_conditional_replacements && ...
+        isfield(step_cfg, 'conditional_replacements') && ...
+        ~isempty(step_cfg.conditional_replacements)
+        
+            replacements = step_cfg.conditional_replacements;
+        
+            % Accept either a cell array of rules or a struct array of rules.
+            if isstruct(replacements)
+                rule_cells = cell(numel(replacements), 1);
+                for r = 1:numel(replacements)
+                    rule_cells{r} = replacements(r);
+                end
+                replacements = rule_cells;
+            elseif ~iscell(replacements)
+                error(['Step 02: conditional_replacements must be a cell array ' ...
+                    'or a struct array of rules.']);
+            end
+        
+            n_done = zeros(numel(replacements), 1);
+            conditional_log = strings(0, 1); %#ok
+        
+            for x = 1:numel(EEG.event)
+        
+                % Use the event's ORIGINAL type, not a type changed by blocking.
+                current_raw = raw_event_types{x};
+        
+                for r = 1:numel(replacements)
+        
+                    rule = replacements{r};
+        
+                    if ~isstruct(rule) || ~isscalar(rule)
+                        error('Step 02: conditional replacement rule %d must be a scalar struct.', r);
+                    end
+        
+                    if ~isfield(rule, 'match_code') || ...
+                            ~isfield(rule, 'previous_code') || ...
+                            ~isfield(rule, 'replace_code')
+                        error(['Step 02: conditional replacement rule %d must define ' ...
+                            'match_code, previous_code, and replace_code.'], r);
+                    end
+        
+                    max_n = getfield_default(rule, 'max_replacements', 1);
+                    max_n = double(max_n);
+        
+                    if ~isscalar(max_n) || isnan(max_n) || max_n < 0
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'max_replacements value. Use a non-negative number or Inf.'], r);
+                    end
+        
+                    if n_done(r) >= max_n
+                        continue;
+                    end
+        
+                    previous_n = getfield_default(rule, 'previous_n', 1);
+                    previous_n = double(previous_n);
+        
+                    if ~isscalar(previous_n) || ~isfinite(previous_n) || ...
+                            previous_n < 1 || previous_n ~= round(previous_n)
+                        error(['Step 02: conditional replacement rule %d has an invalid ' ...
+                            'previous_n. It must be a positive integer.'], r);
+                    end
+        
+                    match_code_raw = rule.match_code;
+                    match_code = helpers.normalize_trigger_type(match_code_raw);
+        
+                    previous_code_raw = rule.previous_code;
+                    previous_code = helpers.normalize_trigger_type(previous_code_raw);
+        
+                    replace_code_raw = rule.replace_code;
+                    replace_code = helpers.normalize_trigger_type(replace_code_raw);
+        
+                    if isempty(match_code) || isempty(previous_code) || isempty(replace_code)
+                        error(['Step 02: conditional replacement rule %d contains an empty ' ...
+                            'match_code, previous_code, or replace_code.'], r);
+                    end
+        
+                    % Find the Nth previous non-empty, non-boundary raw trigger.
+                    prev_idx = x - 1;
+                    n_found = 0;
+                    previous_raw = '';
+        
+                    while prev_idx >= 1 && n_found < previous_n
+                        candidate = raw_event_types{prev_idx};
+        
+                        if ~isempty(candidate) && ~strcmpi(candidate, 'boundary')
+                            n_found = n_found + 1;
+        
+                            if n_found == previous_n
+                                previous_raw = candidate;
+                                break;
                             end
-                
-                
+                        end
+        
+                        prev_idx = prev_idx - 1;
+                    end
+        
+                    % Not enough preceding triggers in the recording.
+                    if n_found < previous_n
+                        continue;
+                    end
+        
+                    if strcmp(current_raw, match_code) && ...
+                            strcmp(previous_raw, previous_code)
+        
+                        EEG.event(x).type = char(replace_code);
+                        n_done(r) = n_done(r) + 1;
+        
+                        % Apply at most one conditional rule to this event.
+                        break;
+                    end
+                end
+            end
+        
+            % Log how many times each rule was applied.
+            for r = 1:numel(replacements)
+                rule = replacements{r};
+                max_n = getfield_default(rule, 'max_replacements', 1);
+                previous_n = getfield_default(rule, 'previous_n', 1);
+        
+                helpers.log_msg_default( ...
+                    ['Step 02 conditional replacement rule %d: "%s" -> "%s" ' ...
+                     'when trigger %d back is "%s" | applied=%d | max=%s'], ...
+                    r, ...
+                    char(helpers.normalize_trigger_type(rule.match_code)), ...
+                    char(helpers.normalize_trigger_type(rule.replace_code)), ...
+                    double(previous_n), ...
+                    char(helpers.normalize_trigger_type(rule.previous_code)), ...
+                    n_done(r), ...
+                    char(string(max_n)));
+            end
+    end        
         % ---- PASS X: generic first-match replacements ----
         if isfield(step_cfg, 'enable_first_match_replacements')
             run_replacements = logical(step_cfg.enable_first_match_replacements);
@@ -1329,7 +1619,7 @@ end
         fname = sprintf('%s_triggersfixed.set', out_base);
         paths_out_dir = paths.prep_02_out_dir;
 
-        EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg);
+        EEG = helpers.safe_save_set(EEG, paths_out_dir, fname, helpers, cfg); %#ok
 
         helpers.log_msg_default('Step 02: saved %s', fullfile(paths_out_dir, fname));
 
@@ -1350,7 +1640,7 @@ end
         step_out.message = 'All matching outputs already existed and were skipped.';
     else
         step_out.out_set_file = char(out_files(1));
-        if numel(out_files) == 1
+        if numel(out_files) == 1 %#ok
             step_out.message = sprintf('Processed 1 trigger-fixed set for sub-%s.', subj_id);
         else
             step_out.message = sprintf('Processed %d trigger-fixed sets for sub-%s.', numel(out_files), subj_id);
@@ -1417,6 +1707,10 @@ step_cfg.trigger_phase_min_phases_with_remaps = 2;
 % Optional enabling flags / generic defaults
 step_cfg.enable_first_match_replacements = true;
 step_cfg.use_gating_from_start_markers   = true;
+
+%Conditional replacement default
+step_cfg.conditional_replacements = {};
+step_cfg.enable_conditional_replacements = true;
 
 % Blocking default 
 step_cfg.blocking = struct();

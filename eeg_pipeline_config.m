@@ -247,7 +247,7 @@ end
 % SUBJECTS
 % =========================================================================
 cfg.subjects = struct();
-cfg.subjects.list   = [ ]; % explicit subject list, e.g. {'211','212'}, leave 
+cfg.subjects.list   = []; % explicit subject list, e.g. {'211','212'}, leave 
 % empty to autodetect from source_eeg_root using cfg.constants.valid_sub_id_regex
 cfg.subjects.min_id = []; % process all subjects with a higher ID than...
 % numeric/string ID, no lower cutoff if left empty 
@@ -356,6 +356,8 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in 
 %   Settings:
 %    - use_gating_from_start_markers = false
 %    - name triggers per category 
+%    - optional: enable_conditional_replacements = true and add conditional
+%                replacement rule
 %    - blocking.count_scope = "global"
 %    - fill triggerfix.blocking.category to rename triggers
 %    - set enable_first_match_replacements = false
@@ -367,6 +369,8 @@ cfg.prep_01.task_label    = cfg.bids.task_label;    % get task label defined in 
 %    - Fill gates.start_markers. accordingly with phase numbers and start
 %       markers, e.g. 'phase1',    "S 92", ...
 %    - name triggers per category
+%    - enable_conditional_replacements = false; only works across phases
+%                                               not within phases!
 %    - blocking.count_scope = "phase"
 %    - define each category in blocking and optionally override its blocks
 %      for individual phases in phase_specific_trigger_renaming_rules
@@ -434,8 +438,18 @@ cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawB = " ";
 cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawC = " ";   
 cfg.paradigms.myParadigm.triggerfix.raw_triggers.rawD = " ";   
 
+%%% 3) Conditional replacement
+cfg.paradigms.myParadigm.triggerfix.enable_conditional_replacements = false;
+cfg.paradigms.myParadigm.triggerfix.conditional_replacements = { ...
+    struct( ...
+        'match_code',     " ", ...
+        'previous_code',  " ", ...
+        'previous_n',      1,...
+        'replace_code',   " ", ...
+        'max_replacements', Inf) ...
+};
 
-%%% 3) Blocking/Counting:renaming and counting event triggers per phase
+%%% 4) Blocking/Counting:renaming and counting event triggers per phase
 cfg.paradigms.myParadigm.triggerfix.blocking = struct();
 cfg.paradigms.myParadigm.triggerfix.blocking.count_scope = " "; 
 % global for counting across all trials (e.g. with your paradigm does not include phases); 
