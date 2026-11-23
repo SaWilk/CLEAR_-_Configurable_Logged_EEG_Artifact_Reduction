@@ -477,7 +477,7 @@ cfg.paradigms.myParadigm.triggerfix.enable_first_match_replacements = false; %tr
 
 % Use match_code_key / replace_code_key to refer to entries in raw_triggers.
 cfg.paradigms.myParadigm.triggerfix.first_match_replacements = {
-    struct('match_code'," ", 'replace_code'," ",    'max_replacements',1),
+    struct('match_code'," ", 'replace_code'," ",    'max_replacements',1);
     struct('match_code'," ", 'replace_code'," ",'max_replacements',1)
 };
 

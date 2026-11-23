@@ -96,7 +96,7 @@ helpers.ensure_dir(bad_chan_qc_dir);
 % ========================================================================
 input_source = "triggersfixed_set";
 in_dir  = prep02_out_dir;
-in_name = "";
+
 
 trigger_fixed_sets = dir(fullfile(in_dir, '*_triggersfixed.set'));
 
@@ -198,33 +198,33 @@ if step_cfg.crop_to_task_markers
     [end_marker, end_latency]   = helpers.find_first_event_latency(EEG, step_cfg.crop_end_marker);
 
     if isempty(start_latency) || isempty(end_latency)
-    if isfield(step_cfg, 'substitute_crop_markers') && ...
-            step_cfg.substitute_crop_markers
+        if isfield(step_cfg, 'substitute_crop_markers') && ...
+                step_cfg.substitute_crop_markers
 
-        helpers.log_msg_default( ...
-            'prep03_untilica: WARNING missing crop marker(s); using the corresponding recording boundary.');
+            helpers.log_msg_default( ...
+                'prep03_untilica: WARNING missing crop marker(s); using the corresponding recording boundary.');
 
-        if isempty(start_latency)
-            start_latency = 1;
-            start_marker = 'first_sample';
+            if isempty(start_latency)
+                start_latency = 1;
+                start_marker = 'first_sample';
+            end
+
+            if isempty(end_latency)
+                end_latency = EEG.pnts;
+                end_marker = 'last_sample';
+            end
+
+        else
+            msg = sprintf( ...
+                'prep03_untilica: missing task markers start(%s)=%d end(%s)=%d -> cannot continue', ...
+                start_marker, isempty(start_latency), ...
+                end_marker, isempty(end_latency));
+
+            helpers.log_msg_default('%s', msg);
+            step_out.message = msg;
+            return;
         end
-
-        if isempty(end_latency)
-            end_latency = EEG.pnts;
-            end_marker = 'last_sample';
-        end
-
-    else
-        msg = sprintf( ...
-            'prep03_untilica: missing task markers start(%s)=%d end(%s)=%d -> cannot continue', ...
-            start_marker, isempty(start_latency), ...
-            end_marker, isempty(end_latency));
-
-        helpers.log_msg_default('%s', msg);
-        step_out.message = msg;
-        return;
     end
-end
 
     % Sample 1 corresponds to time zero. Add padding before the start and after the end.
     t_start = ((double(start_latency) - 1) / EEG.srate) ...
@@ -552,7 +552,7 @@ helpers.log_msg_default( ...
 try
     [~, ~, group_badchan_qc_paths] = helpers.collect_bad_channel_qc(cfg);
     for q = 1:numel(group_badchan_qc_paths)
-        step_out.qc_files{end+1} = group_badchan_qc_paths{q}; %#ok<AGROW>
+        step_out.qc_files{end+1} = group_badchan_qc_paths{q}; 
     end
 catch qc_me
     helpers.log_msg_default( ...

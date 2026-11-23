@@ -142,12 +142,9 @@ try
 
     for k = 1:numel(subject_vhdr_files)
 
-        has_run = false;
         run_label = '';
         run_tag = '';
-        bids_base = '';
         task_label_this_file = task_label;
-        subj_num = subj_id;
 
         if do_eeg
             src_vhdr = subject_vhdr_files(k).name;
@@ -453,7 +450,7 @@ if fid < 0
     error('Step 01: could not open file for rewrite: %s', file_path);
 end
 
-cleanup_obj = onCleanup(@() fclose(fid)); %#ok<NASGU>
+cleanup_obj = onCleanup(@() fclose(fid)); 
 
 for i = 1:numel(lines)
     fprintf(fid, '%s\n', lines{i});
