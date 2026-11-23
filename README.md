@@ -26,6 +26,10 @@ Install MATLAB with **Signal Processing Toolbox** and **Statistics and Machine L
 
 Open the repository's top-level folder in MATLAB. For a new study, edit two files.
 
+(For a detailed explanation of the configuration options, including examples for task-specific trigger mappings, see the
+[configuration walkthrough](tutorials/HowTo_Config.txt).)
+<br>
+
 1. In **`eeg_pipeline_local_paths.m`**, replace the `CHANGE_ME` entries for your machine. Set the data folders shown below and the EEGLAB, ERPLAB, and FASTER paths as applicable under `local.toolboxes`. The config selects a machine profile automatically. Use `cfg.paths.profile_override` if you need to select `pc`, `server_windows`, or `hpc_hummel` explicitly.
 2. Open **`eeg_pipeline_config.m`**. You can edit it directly or save a study-specific copy. If you rename the file, change the function name on its first `function` line to match. Make all `cfg` edits inside that function.
 
@@ -66,7 +70,7 @@ Open the repository's top-level folder in MATLAB. For a new study, edit two file
 Both options are off by default. They act on the continuous recording before bad-channel detection and preparation of the ICA training copy.
 
 - **Task cropping** keeps the interval between task start and task end. Set `cfg.prep_03.crop_to_task_markers = true` and specify `crop_start_marker` and `crop_end_marker`. For repeated markers, select the intended occurrence (`"first"` or `"last"`). With `substitute_crop_markers = true`, a missing marker falls back to the corresponding recording boundary.
-- **Break cropping** removes pauses *within* the retained recording. Set `cfg.prep_03.break_crop_method = "markers"` for paired `break_start_marker` and `break_end_marker` events. Choose `"trial_count"` when pauses must be inferred: specify trial-onset and trial-end markers, expected blocks, and trials per block. Only gaps at expected block boundaries are eligible, and each must meet `break_min_gap_sec` to be removed.
+- **Break cropping** removes pauses *within* the retained recording. Set `cfg.prep_03.break_crop_method = "markers"` for paired `break_start_marker` and `break_end_marker` events. Choose "trial_count" when pauses must be inferred: specify trial-onset and trial-end markers, the first and last markers defining the task window, expected blocks, and trials per block.
 
 Set `break_padding_sec` to preserve enough data after the preceding trial and before the next one for your planned epochs. On the first run, check `<derivatives_root>/qc/03_break_cropping/` to see whether breaks were removed. With the default `break_on_validation_fail = "skip"`, failed validation skips break removal and processing continues.
 

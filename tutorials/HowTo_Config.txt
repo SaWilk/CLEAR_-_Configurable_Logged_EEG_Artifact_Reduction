@@ -15,14 +15,17 @@ Project-identity:
 - The masterlog prefix will be the start of your logfile name- make it succinct and informative.
 - The cfg.bids labels define the Output names of files and directory structure of the bids conversion in prep01
 
-Profiles:
-- profiles refer to analysis Environments (our defaults are pc, server_windows and hpc)
-- you only need to set paths that you will use, e.g. if you have the raw data on your local machine and will do the bids-conversion only there but the rest of the pipeline on the high performance cluster (hpc), you can leave 'source*_root' empty
-- you can set override paths in the same section, e.g. if you are testing the pipeline on a subject that is not saved in your profile_path
+Profiles and local paths:
+- Machine-specific paths are defined in eeg_pipeline_local_paths.m, separately from the main configuration.
+- This file defines the data and toolbox paths for the available profiles: pc, server_windows, and hpc_hummel.
+- Set source_eeg_root, source_beh_root (optional), bids_root, and derivatives_root for the profiles you use.
+- The pipeline automatically selects a profile based on the environment. To select one explicitly, use cfg.paths.profile_override in eeg_pipeline_config.m.
+- Temporary path changes can be made using the corresponding cfg.paths.*_override fields without modifying the local paths file.
 
 Toolbox-paths:
-- tell the Pipeline where to find the required toolboxes for each profile
-
+- Define the paths to EEGLAB, ERPLAB, and FASTER in eeg_pipeline_local_paths.m under local.toolboxes.
+- Specify the toolbox paths separately for each machine profile.
+- The main configuration automatically loads these paths.
 ______________________________
 GLOBAL SETTINGS:
 
@@ -136,31 +139,35 @@ Defaults:
 - downsampling frequency: 250Hz, Note: Sampling rate needs to be at least 4 times the low-pass filter cutoff frequency, otherwise aliasing can occur
 - Highpass filter: 0.1Hz
 - Lowpass filter: 40Hz
-- automatic bad channel detection: channel variance/z-score > 2.5, flatline ≥ 5 s or channel correlation < 0.80; spherical interpolation before ICA for EEG-channels, dead/invalid AUX channels are removed
-- linenoise removal via cleanline (EEGLab)
+- automatic bad-channel detection via clean_rawdata (channel correlation threshold 0.80), plus separate flat-channel detection (≥10% cumulative flat signal); spherical interpolation of bad EEG channels and removal of dead/invalid auxiliary channels
+- line-noise removal via Zapline-plus (with optional CleanLine fallback)
 - epoch rejection via ERPLab: exclude voltage over 300uV, sample-to-sample voltage jumps over 75, flatlines (within 0.5uV) of over 200ms
 
 ------------------------------
 STEP 04: ICA
-- choose ICA method (currently only one Option)
+- choose between RUNICA and AMICA
+- configure ICA channels, rank handling, and AMICA settings if applicable
 
 ------------------------------
-STEP 05: AFTER ICA / ICLABEL:
-- set ICLabel thresholds (https://labeling.ucsd.edu/tutorial)
-- decide which summary tables you want as output (still work in progress as of May 2026)
+STEP 05: AFTER ICA / ICLABEL
+- configure ICLabel artifact classes and rejection thresholds
+- review component classification and signal quality control
+- configure optional QC summaries and diagnostic outputs
 
 ------------------------------
-STEP 06: EPOCHING + FINAL ARTIFACT REJECTION:
+STEP 06: EPOCHING + FINAL ARTIFACT REJECTION
 - choose one of two modes for epoching: baseline or event-locked
-	event-locked:
-	- if you have task data and want to cut epochs based on event-triggers
 
-	baseline:
-	- for continuous recording of baseline/resting-state data
-	- assumes alternating eyes open and eyes closed phases;
+    event-locked:
+    - if you have task data and want to cut epochs based on event triggers
 
-- Coming soon: short description of rejection options
+    baseline:
+    - if you have continuous baseline/resting-state data
+    - optionally distinguish conditions, e.g. eyes open and eyes closed
 
+- choose an artifact rejection method (ERPLAB, FASTER/PTP,
+  MAD variance, or none)
+- configure optional baseline correction and minimum trial counts
 
 
 
