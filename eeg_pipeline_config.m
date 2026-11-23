@@ -36,7 +36,7 @@ helpers = eeg_pipeline_helpers(bootstrap_log);
 %   source_beh_root   = optional project-specific raw behavior/log files
 %   bids_root         = BIDS-formatted raw dataset
 %                       -> output of Step 01
-%                       -> input of Steps 02-06
+%                       -> input of Step 02 (or Step 03 if Step 02 is skipped)
 %   derivatives_root  = preprocessing outputs from Steps 02-06
 % =========================================================================
 
@@ -553,7 +553,7 @@ cfg.prep_03.crop_start_marker = 'S 91';
 cfg.prep_03.crop_end_marker   = 'S 97';
 
 cfg.prep_03.crop_start_marker_occurrence = "first";
-cfg.prep_03.crop_end_marker_occurrence   = "first";
+cfg.prep_03.crop_end_marker_occurrence   = "first"; % ignored when crop_end_marker = "last_sample"
 
 % Additional seconds to keep [before start, after end].
 % The window is limited to the available recording.
@@ -617,8 +617,9 @@ cfg.prep_03.break_last_marker = {};
 
 % This means:
 %   - exactly 360 trial markers must be present
-%   - all 5 expected block boundaries must have sufficient temporal gaps
-%   - trial-end markers must be present for those boundaries
+%   - only gaps at the 5 expected block boundaries are considered
+%   - only gaps >= break_min_gap_sec are removed
+%   - trial-end markers must be present for the selected breaks
 cfg.prep_03.break_expected_n_blocks = [];
 cfg.prep_03.break_trials_per_block  = [];
 
@@ -771,10 +772,13 @@ cfg.prep_03.pop_cleanline_computepower      = 0;
 cfg.prep_03.pop_cleanline_verbose           = false;
 
 cfg.prep_03.ica_prep_epoch_rejection_method = "erplab"; % "erplab" | "faster_ptp" | "mad_variance" | "none"
+
 % ERPLAB ICA-prep rejection.
 % Same criteria as final Step 06 rejection, but more lenient:
-%   final:     +/-200 uV, 50 uV step, 100 ms flatline
+%   final:     +/-100 uV, 50 uV step, 100 ms flatline
 %   ICA-prep:  +/-300 uV, 75 uV step, 200 ms flatline
+%   Note: flatline rejection is disabled by default in both steps.
+
 cfg.prep_03.ica_prep_erplab_epoch_rejection = struct();
 
 % Check only EEG channels, not EOG/SCR/Startle/EKG.
@@ -961,10 +965,9 @@ cfg.prep_06.overwrite_mode = "";
 % -------------------------------------------------------------------------
 % Saving
 % -------------------------------------------------------------------------
-cfg.prep_06.save_final_only         = true; % save only one file per step
-cfg.prep_06.save_intermediate_steps = false; % save output files after each 
-% preprocessing sub-step (not fully implemented yet; if you require this please 
-% contact saskia.wilken@uni-hamburg.de)
+cfg.prep_06.save_final_only         = true;  % save final datasets only
+cfg.prep_06.save_intermediate_steps = false; % save intermediate datasets after
+% preprocessing stages if save_final_only = false
 
 % -------------------------------------------------------------------------
 % Referencing in Step 06

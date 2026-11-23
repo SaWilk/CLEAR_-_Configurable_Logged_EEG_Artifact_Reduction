@@ -4,41 +4,54 @@
 % Copyright (C) 2025–2026 Saskia Wilken and contributors
 %
 function run_eeg_pipeline(config_spec, varargin)
+
 % RUN_EEG_PIPELINE Unified EEG preprocessing runner.
 %
-% WHAT THIS SCRIPT DOES
-%   - Loads all user-facing settings from eeg_pipeline_config.m
-%   - Initializes toolboxes
-%   - Discovers subjects or uses explicitly requested subjects
-%   - Preplans step execution using folder-based overwrite logic
+% PURPOSE
+%   - Loads the selected pipeline configuration
+%   - Initializes the required toolboxes
+%   - Discovers subjects or uses explicitly requested subject IDs
+%   - Plans step execution based on overwrite settings
 %   - Runs enabled preprocessing steps serially or in parallel
-%   - Writes one master log and one subject log per subject
+%   - Writes master and subject-specific logs and QC summaries
 %
 % INPUT
-%   Required:
-%     - eeg_pipeline_config.m in the same folder
-%     - eeg_pipeline_helpers.m on the MATLAB path
-%     - external step functions on the MATLAB path or in ./steps
+%   config_spec : Name or handle of a configuration function.
+%                 A configuration struct is also accepted.
 %
-%   Optional call-time subject override:
-%     run_eeg_pipeline('211','212','213')
-%     run_eeg_pipeline({'211','212','213'})
+%   Optional subject IDs override the configured subject selection.
+%
+%   Examples:
+%     run_eeg_pipeline('eeg_pipeline_config')
+%     run_eeg_pipeline('eeg_pipeline_config', '211')
+%     run_eeg_pipeline('eeg_pipeline_config', {'211','212','213'})
 %
 % OUTPUT
-%   - Step 01 BIDS raw output under cfg.paths.bids_root
-%   - Steps 02-06 derivatives under cfg.paths.derivatives_root
-%   - Logs under <derivatives_root>/logs/
+%   - Step 01: BIDS-formatted files under cfg.paths.bids_root
+%   - Steps 02-06: preprocessing outputs under cfg.paths.derivatives_root
+%   - Logs and processing status under <derivatives_root>/logs/
 %
-% NOTES
-%   - The user should normally edit ONLY eeg_pipeline_config.m
-%   - This runner intentionally stays thin and delegates utilities to
-%     eeg_pipeline_helpers.m
+% SETUP
+%   - Configure machine-specific paths in eeg_pipeline_local_paths.m
+%   - Configure preprocessing settings in eeg_pipeline_config.m
+%   - Keep the step functions and helpers in the ./steps directory
 %
 % REQUIREMENTS
 %   - EEGLAB
-%   - FASTER
-%   - (AMICA - optional)
-%   - (cleanline - optional)
+%   - ERPLAB (default epoch rejection method)
+%   - ICLabel
+%   - clean_rawdata (default bad-channel detection method)
+%   - Zapline-plus (default line-noise removal method)
+%   - FASTER (optional)
+%   - AMICA (optional)
+%   - CleanLine (optional)
+%   - Parallel Computing Toolbox (optional)
+%
+% NOTES
+%   - The runner delegates preprocessing to the step functions
+%     and shared utilities in eeg_pipeline_helpers.m.
+%   - Preprocessing options should normally be changed in the
+%     configuration rather than directly in the step functions.
 %
 % Saskia Wilken Dez 2025
 

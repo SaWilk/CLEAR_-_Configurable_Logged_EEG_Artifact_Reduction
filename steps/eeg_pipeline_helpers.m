@@ -3038,19 +3038,20 @@ function [EEG, info] = crop_internal_breaks_impl(EEG, step_cfg)
 %
 %       Events before/after this window are ignored.
 %
-%       Break cropping is performed only when ALL configured criteria
-%       inside this task window are matched exactly:
+%       Break cropping is performed only when the configured trial
+%       structure is valid and all selected removal windows pass validation:
 %
 %       - exact number of trial-onset markers and trials per block
-%       - sufficient gaps at every expected block boundary
-%       - a trial-end marker for every last trial of a block
+%       - gaps >= break_min_gap_sec at the block boundaries to be removed
+%       - a trial-end marker for each selected break
 %       - non-overlapping removal windows with positive padding
 %       - no protected experimental events within removal windows
 %
 %       Long gaps within blocks are ignored.
-%       Missing breaks or end markers cause validation to fail.
+%       Short gaps at block boundaries are left unchanged.
+%       Missing required end markers cause validation to fail.
 %
-% If any criterion fails, no data are removed.
+% If validation fails, no data are removed.
 
 info = struct();
 
