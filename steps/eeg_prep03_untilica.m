@@ -96,7 +96,7 @@ helpers.ensure_dir(bad_chan_qc_dir);
 % ========================================================================
 input_source = "triggersfixed_set";
 in_dir  = prep02_out_dir;
-in_name = "";
+
 
 trigger_fixed_sets = dir(fullfile(in_dir, '*_triggersfixed.set'));
 
@@ -717,7 +717,7 @@ helpers.log_msg_default( ...
 try
     [~, ~, group_badchan_qc_paths] = helpers.collect_bad_channel_qc(cfg);
     for q = 1:numel(group_badchan_qc_paths)
-        step_out.qc_files{end+1} = group_badchan_qc_paths{q}; %#ok<AGROW>
+        step_out.qc_files{end+1} = group_badchan_qc_paths{q}; 
     end
 catch qc_me
     helpers.log_msg_default( ...

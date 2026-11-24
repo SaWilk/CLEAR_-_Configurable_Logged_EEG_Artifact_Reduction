@@ -89,76 +89,54 @@ helpers.normalize_trigger_type = @normalize_trigger_type_impl;
 % -------------------------------------------------------------------------
 % EEG utility helpers used by step files
 % -------------------------------------------------------------------------
-helpers.normalize_event_types                  = @normalize_event_types_impl;
-helpers.normalize_epoching_mode_value          = @normalize_epoching_mode_value_impl;
-helpers.get_channel_indices_by_type            = @get_channel_indices_by_type_impl;
-helpers.apply_reference_mode                   = @apply_reference_mode_impl;
-helpers.build_epoching_output_paths            = @build_epoching_output_paths_impl;
-helpers.normalize_event_list                   = @normalize_event_list_impl;
-helpers.get_present_events                     = @get_present_events_impl;
-helpers.preview_event_types                    = @preview_event_types_impl;
-helpers.evaluate_min_trials_per_condition      = @evaluate_min_trials_per_condition_impl;
-helpers.build_step06_summary_row               = @build_step06_summary_row_impl;
-helpers.build_step06_summary_rows              = @build_step06_summary_rows_impl;
-helpers.build_bad_channel_qc_table             = @build_bad_channel_qc_table_impl;
-helpers.build_epoch_rejection_qc_table         = @build_epoch_rejection_qc_table_impl;
-helpers.write_qc_table                         = @write_qc_table_impl;
-helpers.resolve_qc_timestamp                   = @resolve_qc_timestamp_impl;
-helpers.collect_bad_channel_qc                 = @collect_bad_channel_qc_impl;
-helpers.collect_prep06_summary                 = @collect_prep06_summary_impl;
-helpers.build_high_epoch_rejection_warning     = @build_high_epoch_rejection_warning_impl;
-helpers.save_intermediate_set                  = @save_intermediate_set_impl;
-helpers.apply_hard_epoch_threshold_rejection   = @apply_hard_epoch_threshold_rejection_impl;
-helpers.apply_fallback_epoch_rejection         = @apply_fallback_epoch_rejection_impl;
-helpers.create_baseline_condition_datasets     = @create_baseline_condition_datasets_impl;
-helpers.normalize_event_types                 = @normalize_event_types_impl;
-helpers.normalize_epoching_mode_value         = @normalize_epoching_mode_value_impl;
-helpers.get_channel_indices_by_type           = @get_channel_indices_by_type_impl;
-helpers.apply_reference_mode                  = @apply_reference_mode_impl;
-helpers.build_epoching_output_paths           = @build_epoching_output_paths_impl;
-helpers.normalize_event_list                  = @normalize_event_list_impl;
-helpers.get_present_events                    = @get_present_events_impl;
-helpers.preview_event_types                   = @preview_event_types_impl;
-helpers.evaluate_min_trials_per_condition     = @evaluate_min_trials_per_condition_impl;
-helpers.build_step06_summary_row              = @build_step06_summary_row_impl;
-helpers.build_step06_summary_rows             = @build_step06_summary_rows_impl;
-helpers.build_bad_channel_qc_table            = @build_bad_channel_qc_table_impl;
-helpers.build_epoch_rejection_qc_table        = @build_epoch_rejection_qc_table_impl;
-helpers.write_qc_table                        = @write_qc_table_impl;
-helpers.resolve_qc_timestamp                  = @resolve_qc_timestamp_impl;
-helpers.collect_bad_channel_qc                = @collect_bad_channel_qc_impl;
-helpers.collect_prep06_summary                = @collect_prep06_summary_impl;
-helpers.build_ica_training_summary            = @build_ica_training_summary_impl;
-helpers.write_ica_training_summary            = @write_ica_training_summary_impl;
-helpers.collect_prep03_summary                = @collect_prep03_summary_impl;
-helpers.build_high_epoch_rejection_warning    = @build_high_epoch_rejection_warning_impl;
-helpers.save_intermediate_set                 = @save_intermediate_set_impl;
-helpers.apply_hard_epoch_threshold_rejection  = @apply_hard_epoch_threshold_rejection_impl;
-helpers.apply_fallback_epoch_rejection        = @apply_fallback_epoch_rejection_impl;
-helpers.create_baseline_condition_datasets    = @create_baseline_condition_datasets_impl;
-helpers.resolve_baseline_condition_definitions = @resolve_baseline_condition_definitions_impl;
-helpers.build_epoching_output_stem             = @build_epoching_output_stem_impl;
-helpers.finalize_epoched_dataset               = @finalize_epoched_dataset_impl;
-helpers.save_final_epoched_outputs             = @save_final_epoched_outputs_impl;
-helpers.build_eeg_key_token_stream_with_time   = @build_eeg_key_token_stream_with_time_impl;
-helpers.find_first_event_latency               = @find_first_event_latency_impl;
-helpers.find_last_event_latency                = @find_last_event_latency_impl;
-helpers.crop_internal_breaks                   = @crop_internal_breaks_impl;
-helpers.ensure_channel_types                   = @ensure_channel_types_impl;
-helpers.find_flat_or_invalid_channels          = @find_flat_or_invalid_channels_impl;
-helpers.detect_bad_channels_clean_rawdata      = @detect_bad_channels_clean_rawdata_impl;
-helpers.apply_filter_to_subset_only            = @apply_filter_to_subset_only_impl;
-helpers.remove_line_noise_from_subset          = @remove_line_noise_from_subset_impl;
-helpers.apply_jointprob_safely                 = @apply_jointprob_safely_impl;
-helpers.apply_shared_epoch_rejection           = @apply_shared_epoch_rejection_impl;
-helpers.apply_erplab_epoch_rejection           = @apply_erplab_epoch_rejection_impl;
-helpers.reject_ica_prep_epochs_by_mad_variance = @reject_ica_prep_epochs_by_mad_variance_impl;
-helpers.compute_data_rank_svd                  = @compute_data_rank_svd_impl;
-helpers.make_unique_amica_tmpdir               = @make_unique_amica_tmpdir_impl;
-helpers.delete_files_matching                  = @delete_files_matching_impl;
-helpers.safe_rmdir                             = @safe_rmdir_impl;
-helpers.write_ic_topography_pngs               = @write_ic_topography_pngs_impl;
-helpers.merge_structs_recursive                = @merge_structs_recursive_impl;
+helpers.normalize_event_types                   = @normalize_event_types_impl;
+helpers.normalize_epoching_mode_value           = @normalize_epoching_mode_value_impl;
+helpers.get_channel_indices_by_type             = @get_channel_indices_by_type_impl;
+helpers.apply_reference_mode                    = @apply_reference_mode_impl;
+helpers.build_epoching_output_paths             = @build_epoching_output_paths_impl;
+helpers.normalize_event_list                    = @normalize_event_list_impl;
+helpers.get_present_events                      = @get_present_events_impl;
+helpers.preview_event_types                     = @preview_event_types_impl;
+helpers.evaluate_min_trials_per_condition       = @evaluate_min_trials_per_condition_impl;
+helpers.build_step06_summary_row                = @build_step06_summary_row_impl;
+helpers.build_step06_summary_rows               = @build_step06_summary_rows_impl;
+helpers.build_bad_channel_qc_table              = @build_bad_channel_qc_table_impl;
+helpers.build_epoch_rejection_qc_table          = @build_epoch_rejection_qc_table_impl;
+helpers.write_qc_table                          = @write_qc_table_impl;
+helpers.resolve_qc_timestamp                    = @resolve_qc_timestamp_impl;
+helpers.collect_bad_channel_qc                  = @collect_bad_channel_qc_impl;
+helpers.collect_prep06_summary                  = @collect_prep06_summary_impl;
+helpers.build_ica_training_summary              = @build_ica_training_summary_impl;
+helpers.write_ica_training_summary              = @write_ica_training_summary_impl;
+helpers.collect_prep03_summary                  = @collect_prep03_summary_impl;
+helpers.build_high_epoch_rejection_warning      = @build_high_epoch_rejection_warning_impl;
+helpers.save_intermediate_set                   = @save_intermediate_set_impl;
+helpers.apply_hard_epoch_threshold_rejection    = @apply_hard_epoch_threshold_rejection_impl;
+helpers.apply_fallback_epoch_rejection          = @apply_fallback_epoch_rejection_impl;
+helpers.create_baseline_condition_datasets      = @create_baseline_condition_datasets_impl;
+helpers.resolve_baseline_condition_definitions  = @resolve_baseline_condition_definitions_impl;
+helpers.build_epoching_output_stem              = @build_epoching_output_stem_impl;
+helpers.finalize_epoched_dataset                = @finalize_epoched_dataset_impl;
+helpers.save_final_epoched_outputs              = @save_final_epoched_outputs_impl;
+helpers.build_eeg_key_token_stream_with_time    = @build_eeg_key_token_stream_with_time_impl;
+helpers.find_first_event_latency                = @find_first_event_latency_impl;
+helpers.find_last_event_latency                 = @find_last_event_latency_impl;
+helpers.crop_internal_breaks                    = @crop_internal_breaks_impl;
+helpers.ensure_channel_types                    = @ensure_channel_types_impl;
+helpers.find_flat_or_invalid_channels           = @find_flat_or_invalid_channels_impl;
+helpers.detect_bad_channels_clean_rawdata       = @detect_bad_channels_clean_rawdata_impl;
+helpers.apply_filter_to_subset_only             = @apply_filter_to_subset_only_impl;
+helpers.remove_line_noise_from_subset           = @remove_line_noise_from_subset_impl;
+helpers.apply_jointprob_safely                  = @apply_jointprob_safely_impl;
+helpers.apply_shared_epoch_rejection            = @apply_shared_epoch_rejection_impl;
+helpers.apply_erplab_epoch_rejection            = @apply_erplab_epoch_rejection_impl;
+helpers.reject_ica_prep_epochs_by_mad_variance  = @reject_ica_prep_epochs_by_mad_variance_impl;
+helpers.compute_data_rank_svd                   = @compute_data_rank_svd_impl;
+helpers.make_unique_amica_tmpdir                = @make_unique_amica_tmpdir_impl;
+helpers.delete_files_matching                   = @delete_files_matching_impl;
+helpers.safe_rmdir                              = @safe_rmdir_impl;
+helpers.write_ic_topography_pngs                = @write_ic_topography_pngs_impl;
+helpers.merge_structs_recursive                 = @merge_structs_recursive_impl;
 
 helpers.triggerfix_blocks_for_phase            = @triggerfix_blocks_for_phase_impl;
 
@@ -254,7 +232,7 @@ end
 
 env_names = {'EEG_PIPELINE_ENV_MODE'};
 if strlength(strtrim(legacy_env_prefix)) > 0
-    env_names{end+1} = [char(legacy_env_prefix) '_ENV_MODE']; %#ok<AGROW>
+    env_names{end+1} = [char(legacy_env_prefix) '_ENV_MODE'];
 end
 
 mode = string(get_env_first_nonempty_impl(env_names));
@@ -286,7 +264,7 @@ machine_kind = "unknown";
 
 env_names = {'EEG_PIPELINE_MACHINE_KIND'};
 if strlength(strtrim(legacy_env_prefix)) > 0
-    env_names{end+1} = [char(legacy_env_prefix) '_MACHINE_KIND']; %#ok<AGROW>
+    env_names{end+1} = [char(legacy_env_prefix) '_MACHINE_KIND'];
 end
 
 override = string(get_env_first_nonempty_impl(env_names));
@@ -441,7 +419,7 @@ function logs_dir = resolve_logs_dir_impl(cfg)
 % This keeps run logs together with the generated preprocessing outputs
 % instead of mixing them into the code folder or a temporary bootstrap path.
 
-logs_dir = '';
+
 
 if nargin < 1 || ~isstruct(cfg)
     error('resolve_logs_dir: cfg must be a struct.');
@@ -618,8 +596,7 @@ end
 end
 
 function sub_ids = discover_subjects_impl(cfg)
-sub_ids = {};
-discovery_root = "";
+
 
 % -------------------------------------------------------------------------
 % 1) Explicit subject list always wins
@@ -826,7 +803,7 @@ log_msg_impl(master_log, ...
 end
 
 function [config_fn, config_name, config_file] = resolve_config_function_impl(config_spec, root_dir)
-config_file = "";
+
 
 if isa(config_spec, 'function_handle')
     config_fn   = config_spec;
@@ -1752,7 +1729,7 @@ vhdr_name = '';
 candidate_dirs = {};
 
 if isfield(paths, 'bids_ses_dir') && strlength(string(paths.bids_ses_dir)) > 0
-    candidate_dirs{end+1} = fullfile(char(string(paths.bids_ses_dir)), 'eeg'); %#ok<AGROW>
+    candidate_dirs{end+1} = fullfile(char(string(paths.bids_ses_dir)), 'eeg');
 end
 
 if isfield(paths, 'bids_sub_dir') && strlength(string(paths.bids_sub_dir)) > 0
@@ -1760,9 +1737,9 @@ if isfield(paths, 'bids_sub_dir') && strlength(string(paths.bids_sub_dir)) > 0
         candidate_dirs{end+1} = fullfile( ...
             char(string(paths.bids_sub_dir)), ...
             ['ses-' char(string(paths.session_label))], ...
-            'eeg'); %#ok<AGROW>
+            'eeg');
     end
-    candidate_dirs{end+1} = fullfile(char(string(paths.bids_sub_dir)), 'eeg'); %#ok<AGROW>
+    candidate_dirs{end+1} = fullfile(char(string(paths.bids_sub_dir)), 'eeg');
 end
 
 candidate_dirs = unique(candidate_dirs, 'stable');
@@ -1983,7 +1960,7 @@ mode = regexprep(mode, '\s+', ' ');
 end
 
 function [idx_eeg, idx_eog, idx_non_eeg] = get_channel_indices_by_type_impl(EEG)
-idx_eeg = [];
+
 idx_eog = [];
 idx_non_eeg = [];
 
@@ -2148,7 +2125,7 @@ elseif strcmp(mode, 'baseline')
             run_base, condition_names(c), has_conditions);
         condition_paths = build_output_paths_for_base_stem_epoching_impl( ...
             base_stem, out_dir, step_cfg, idx_eeg, idx_eog, idx_non_eeg);
-        output_spec.all_paths = [output_spec.all_paths; condition_paths(:)]; %#ok<AGROW>
+        output_spec.all_paths = [output_spec.all_paths; condition_paths(:)];
     end
 
 else
@@ -2298,7 +2275,7 @@ info.n_kept     = EEG_out.trials;
 end
 
 function [condition_datasets, condition_names] = create_baseline_condition_datasets_impl(EEG, step_cfg, helpers, run_base)
-condition_datasets = {};
+
 
 if ~isfield(EEG, 'event') || isempty(EEG.event)
     error('No EEG.event present -> cannot segment baseline conditions.');
@@ -2388,9 +2365,9 @@ for i = 1:numel(event_codes)
 end
 
 if current_t1 < recording_end_s - sample_eps
-    seg_condition(end+1,1) = current_condition; %#ok<AGROW>
-    seg_t1(end+1,1) = current_t1; %#ok<AGROW>
-    seg_t2(end+1,1) = recording_end_s; %#ok<AGROW>
+    seg_condition(end+1,1) = current_condition;
+    seg_t1(end+1,1) = current_t1;
+    seg_t2(end+1,1) = recording_end_s;
 end
 
 if isempty(seg_t1)
@@ -2441,7 +2418,7 @@ for s = 1:numel(seg_t1)
     EEG_ep = append_eeg_comment_impl(EEG_ep, sprintf( ...
         'prep_06_epoching: baseline_condition=%s | chunk=[%.3f %.3f] s | regepoch_length=%.1f s | regepoch_step=%.1f s', ...
         condition_names(condition_ix), t1, t2, epoch_len, epoch_step));
-    condition_parts{condition_ix}{end+1} = EEG_ep; %#ok<AGROW>
+    condition_parts{condition_ix}{end+1} = EEG_ep;
 end
 
 condition_datasets = cell(numel(condition_names), 1);
@@ -2521,7 +2498,7 @@ end
 function [EEG_final, rej_info] = finalize_epoched_dataset_impl( ...
     EEG_ep, base_stem, out_dir, step_cfg, cfg, helpers, subj_label, run_label)
 
-EEG_final = EEG_ep;
+
 
 rej_info = struct();
 rej_info.excluded                        = false;
@@ -2657,7 +2634,7 @@ if step_cfg.do_artifact_rejection
                     rej_info.n_rejected_sophisticated = erplab_info.n_rejected;
                     rej_info.n_kept = EEG_work.trials;
 
-                    [rej_info, remaining_original_epochs] = record_backend_reason_masks_impl( ...
+                    [rej_info, ~] = record_backend_reason_masks_impl( ...
                         rej_info, remaining_original_epochs, "erplab", erplab_info, erplab_reject_cfg);
 
                     EEG_work = helpers.append_eeg_comment(EEG_work, sprintf( ...
@@ -2702,7 +2679,7 @@ if step_cfg.do_artifact_rejection
                     rej_info.n_rejected_sophisticated = mad_info.n_rejected;
                     rej_info.n_kept = EEG_work.trials;
 
-                    [rej_info, remaining_original_epochs] = record_backend_reason_masks_impl( ...
+                    [rej_info, ~] = record_backend_reason_masks_impl( ...
                         rej_info, remaining_original_epochs, "mad_variance", mad_info, step_cfg);
 
                     EEG_work = helpers.append_eeg_comment(EEG_work, sprintf( ...
@@ -2739,7 +2716,7 @@ if step_cfg.do_artifact_rejection
                     rej_info.n_rejected_sophisticated = faster_ptp_info.n_rejected;
                     rej_info.n_kept = EEG_work.trials;
 
-                    [rej_info, remaining_original_epochs] = record_backend_reason_masks_impl( ...
+                    [rej_info, ~] = record_backend_reason_masks_impl( ...
                         rej_info, remaining_original_epochs, "faster_ptp", faster_ptp_info, faster_ptp_cfg);
 
                     EEG_work = helpers.append_eeg_comment(EEG_work, sprintf( ...
@@ -2855,7 +2832,7 @@ if step_cfg.split_non_eeg_channels
     EEG_primary = helpers.safe_save_set(EEG_primary, out_dir, primary_name, helpers, cfg);
     helpers.log_msg_default('prep_06_epoching: saved: %s', primary_path);
 
-    saved_paths{end+1,1} = primary_path; %#ok<AGROW>
+    saved_paths{end+1,1} = primary_path;
 
     if ~isempty(secondary_idx)
         EEG_secondary = pop_select(EEG_final, 'channel', secondary_idx);
@@ -2868,7 +2845,7 @@ if step_cfg.split_non_eeg_channels
         EEG_secondary = helpers.safe_save_set(EEG_secondary, out_dir, secondary_name, helpers, cfg);
         helpers.log_msg_default('prep_06_epoching: saved: %s', secondary_path);
 
-        saved_paths{end+1,1} = secondary_path; %#ok<AGROW>
+        saved_paths{end+1,1} = secondary_path;
     end
 else
     EEG_full = EEG_final;
@@ -2880,7 +2857,7 @@ else
     EEG_full = helpers.safe_save_set(EEG_full, out_dir, out_name, helpers, cfg);
     helpers.log_msg_default('prep_06_epoching: saved: %s', out_path);
 
-    saved_paths{end+1,1} = out_path; %#ok<AGROW>
+    saved_paths{end+1,1} = out_path;
 end
 end
 
@@ -2888,16 +2865,16 @@ function paths_out = build_output_paths_for_base_stem_epoching_impl(base_stem, o
 paths_out = {};
 
 if step_cfg.split_non_eeg_channels
-    paths_out{end+1,1} = fullfile(out_dir, char(string(base_stem) + "_EEG.set")); %#ok<AGROW>
+    paths_out{end+1,1} = fullfile(out_dir, char(string(base_stem) + "_EEG.set"));
 
     [~, secondary_idx] = split_final_channel_indices_epoching_impl( ...
         idx_eeg, idx_eog, idx_non_eeg, step_cfg);
 
     if ~isempty(secondary_idx)
-        paths_out{end+1,1} = fullfile(out_dir, char(string(base_stem) + "_NON_EEG.set")); %#ok<AGROW>
+        paths_out{end+1,1} = fullfile(out_dir, char(string(base_stem) + "_NON_EEG.set"));
     end
 else
-    paths_out{end+1,1} = fullfile(out_dir, char(string(base_stem) + ".set")); %#ok<AGROW>
+    paths_out{end+1,1} = fullfile(out_dir, char(string(base_stem) + ".set"));
 end
 end
 
@@ -3061,19 +3038,20 @@ function [EEG, info] = crop_internal_breaks_impl(EEG, step_cfg)
 %
 %       Events before/after this window are ignored.
 %
-%       Break cropping is performed only when ALL configured criteria
-%       inside this task window are matched exactly:
+%       Break cropping is performed only when the configured trial
+%       structure is valid and all selected removal windows pass validation:
 %
 %       - exact number of trial-onset markers and trials per block
-%       - sufficient gaps at every expected block boundary
-%       - a trial-end marker for every last trial of a block
+%       - gaps >= break_min_gap_sec at the block boundaries to be removed
+%       - a trial-end marker for each selected break
 %       - non-overlapping removal windows with positive padding
 %       - no protected experimental events within removal windows
 %
 %       Long gaps within blocks are ignored.
-%       Missing breaks or end markers cause validation to fail.
+%       Short gaps at block boundaries are left unchanged.
+%       Missing required end markers cause validation to fail.
 %
-% If any criterion fails, no data are removed.
+% If validation fails, no data are removed.
 
 info = struct();
 
@@ -4581,15 +4559,15 @@ end
 required_erplab_functions = {};
 
 if isfield(reject_cfg, 'use_extreme_voltage') && logical(reject_cfg.use_extreme_voltage)
-    required_erplab_functions{end+1} = 'pop_artextval'; %#ok<AGROW>
+    required_erplab_functions{end+1} = 'pop_artextval';
 end
 
 if isfield(reject_cfg, 'use_sample_diff') && logical(reject_cfg.use_sample_diff)
-    required_erplab_functions{end+1} = 'pop_artdiff'; %#ok<AGROW>
+    required_erplab_functions{end+1} = 'pop_artdiff';
 end
 
 if isfield(reject_cfg, 'use_flatline') && logical(reject_cfg.use_flatline)
-    required_erplab_functions{end+1} = 'pop_artflatline'; %#ok<AGROW>
+    required_erplab_functions{end+1} = 'pop_artflatline';
 end
 
 for f = 1:numel(required_erplab_functions)
@@ -5088,7 +5066,7 @@ if numel(twindow_ms) ~= 2 || any(~isfinite(twindow_ms))
     error('ERPLAB epoch rejection twindow_ms must be [] or [start end] in ms.');
 end
 
-twindow_ms = sort(twindow_ms(:)');
+twindow_ms = sort(twindow_ms(:)).';
 
 epoch_ms = [double(EEG.xmin) double(EEG.xmax)] * 1000;
 
@@ -5220,8 +5198,8 @@ for ii = 1:numel(ic_list)
             'electrodes', topo_cfg.ic_topo_electrodes);
 
         if nargin >= 7 && ~isempty(classif) && size(classif, 2) >= 7
-            ttl = sprintf([ ...
-                '%s | IC %d (B %.2f M %.2f E %.2f H %.2f L %.2f C %.2f O %.2f) -> %s'], ...
+            ttl = sprintf( ...
+                '%s | IC %d (B %.2f M %.2f E %.2f H %.2f L %.2f C %.2f O %.2f) -> %s', ...
                 file_prefix, ic, ...
                 classif(ic, 1), classif(ic, 2), classif(ic, 3), ...
                 classif(ic, 4), classif(ic, 5), classif(ic, 6), ...
@@ -5504,7 +5482,7 @@ end
 
 relevant_hits = find(relevant_mask);
 
-if numel(relevant_hits) == 1
+if isscalar(relevant_hits)
     code = type_vec(relevant_hits);
     return;
 end
@@ -5538,7 +5516,7 @@ end
 function lat_ms = scalarize_latency_ms_impl(x)
 lat_ms = NaN;
 
-if iscell(x) && numel(x) == 1
+if iscell(x) && isscalar(x)
     x = x{1};
 end
 
@@ -5818,7 +5796,7 @@ out_dir = fileparts(out_path);
 ensure_dir_impl(out_dir);
 
 tmp_path = [tempname(out_dir) '.csv'];
-cleanup_obj = onCleanup(@() delete_if_exists_impl(tmp_path)); %#ok<NASGU>
+cleanup_obj = onCleanup(@() delete_if_exists_impl(tmp_path));
 
 writetable(t, tmp_path, 'Delimiter', char(string(delimiter)));
 [ok, msg] = movefile(tmp_path, out_path, 'f');
@@ -6348,7 +6326,7 @@ if ~isempty(t_all)
     if ~isempty(t_pair)
         pair_path = fullfile(epoch_root, sprintf('%s_prep06_comparison_runica_vs_amica.csv', char(timestamp)));
         write_qc_table_impl(t_pair, pair_path, delimiter);
-        output_paths{end+1} = pair_path; %#ok<AGROW>
+        output_paths{end+1} = pair_path;
     end
 end
 
@@ -6377,8 +6355,8 @@ if ~isempty(t_reasons)
     reason_group_path = fullfile(epoch_root, sprintf('%s_epoch_rejection_reasons_by_condition.csv', char(timestamp)));
     write_qc_table_impl(t_reasons, reason_all_path, delimiter);
     write_qc_table_impl(t_reason_group, reason_group_path, delimiter);
-    output_paths{end+1} = reason_all_path; %#ok<AGROW>
-    output_paths{end+1} = reason_group_path; %#ok<AGROW>
+    output_paths{end+1} = reason_all_path;
+    output_paths{end+1} = reason_group_path;
 end
 end
 
@@ -7254,7 +7232,7 @@ opts.behavior_time_unit         = "ms";
 opts.behavior_log_map           = {};
 opts.raw_triggers               = struct();
 
-if numel(varargin) == 1 && isstruct(varargin{1})
+if isscalar(varargin) && isstruct(varargin{1})
     user_opts = varargin{1};
     fields = fieldnames(user_opts);
     for k = 1:numel(fields)
@@ -7424,7 +7402,7 @@ col_time  = string(opts.behavior_column_time);
 required = [col_event, col_code, col_time];
 
 if ~all(ismember(required, vars))
-    error(['Behavior log missing required columns. Required: %s | Found: %s'], ...
+    error('Behavior log missing required columns. Required: %s | Found: %s', ...
         strjoin(required, ', '), strjoin(vars, ', '));
 end
 
@@ -8029,15 +8007,15 @@ warning_reasons = strings(0, 1);
 try
     validate_ica_matrices_impl(weights, sphere, expected_rank, n_channels, "amica");
 catch
-    failure_codes(end+1, 1) = "AMICA_OUTPUT_INVALID"; %#ok<AGROW>
+    failure_codes(end+1, 1) = "AMICA_OUTPUT_INVALID";
     failure_reasons(end+1, 1) = ...
-        "AMICA ICA matrices failed validation."; %#ok<AGROW>
+        "AMICA ICA matrices failed validation.";
 end
 
 if ~isstruct(mods) || ~isfield(mods, 'num_models') || mods.num_models ~= 1
-    failure_codes(end+1, 1) = "AMICA_MODEL_COUNT_INVALID"; %#ok<AGROW>
+    failure_codes(end+1, 1) = "AMICA_MODEL_COUNT_INVALID";
     failure_reasons(end+1, 1) = ...
-        "AMICA did not return exactly one ICA model."; %#ok<AGROW>
+        "AMICA did not return exactly one ICA model.";
 end
 
 ll = [];
@@ -8045,10 +8023,10 @@ if isstruct(mods) && isfield(mods, 'LL') && isnumeric(mods.LL)
     ll = double(mods.LL(:));
 end
 
-if isempty(ll) || (numel(ll) == 1 && ll(1) == 0)
-    warning_codes(end+1, 1) = "AMICA_LL_MISSING"; %#ok<AGROW>
+if isempty(ll) || (isscalar(ll) && ll(1) == 0)
+    warning_codes(end+1, 1) = "AMICA_LL_MISSING";
     warning_reasons(end+1, 1) = ...
-        "AMICA returned no usable log-likelihood history."; %#ok<AGROW>
+        "AMICA returned no usable log-likelihood history.";
 else
     qc.n_iterations = numel(ll);
     qc.ll_initial = ll(1);
@@ -8056,9 +8034,9 @@ else
     qc.ll_best = max(ll);
 
     if any(~isfinite(ll))
-        failure_codes(end+1, 1) = "AMICA_LL_NONFINITE"; %#ok<AGROW>
+        failure_codes(end+1, 1) = "AMICA_LL_NONFINITE";
         failure_reasons(end+1, 1) = ...
-            "AMICA log-likelihood history contains non-finite values."; %#ok<AGROW>
+            "AMICA log-likelihood history contains non-finite values.";
     end
 
     tail_window = max(2, round(double(step_cfg.amica_convergence_tail_window)));
@@ -8076,19 +8054,19 @@ else
 
     min_iterations = max(1, round(double(step_cfg.amica_convergence_min_iterations)));
     if qc.n_iterations < min_iterations
-        warning_codes(end+1, 1) = "AMICA_TOO_FEW_ITERATIONS"; %#ok<AGROW>
+        warning_codes(end+1, 1) = "AMICA_TOO_FEW_ITERATIONS";
         warning_reasons(end+1, 1) = sprintf( ...
             'AMICA stopped after %d iterations; the configured minimum is %d.', ...
-            qc.n_iterations, min_iterations); %#ok<AGROW>
+            qc.n_iterations, min_iterations);
     end
 
     max_iter = max(1, round(double(step_cfg.amica_max_iter)));
     qc.hit_max_iter = qc.n_iterations >= max_iter;
     if qc.hit_max_iter
-        warning_codes(end+1, 1) = "AMICA_MAX_ITER_REACHED"; %#ok<AGROW>
+        warning_codes(end+1, 1) = "AMICA_MAX_ITER_REACHED";
         warning_reasons(end+1, 1) = sprintf( ...
             ['AMICA reached the configured iteration cap (%d) instead of ' ...
-             'stopping at an internal convergence criterion.'], max_iter); %#ok<AGROW>
+             'stopping at an internal convergence criterion.'], max_iter);
     end
 end
 
@@ -8100,15 +8078,15 @@ if logical(step_cfg.amica_write_update_norm_history)
     end
 
     if isempty(nd)
-        warning_codes(end+1, 1) = "AMICA_UPDATE_HISTORY_MISSING"; %#ok<AGROW>
+        warning_codes(end+1, 1) = "AMICA_UPDATE_HISTORY_MISSING";
         warning_reasons(end+1, 1) = ...
-            "AMICA returned no component update-norm history."; %#ok<AGROW>
+            "AMICA returned no component update-norm history.";
     else
         final_nd = reshape(nd(end, :, :), 1, []);
         if isempty(final_nd) || any(~isfinite(final_nd))
-            failure_codes(end+1, 1) = "AMICA_UPDATE_NORM_NONFINITE"; %#ok<AGROW>
+            failure_codes(end+1, 1) = "AMICA_UPDATE_NORM_NONFINITE";
             failure_reasons(end+1, 1) = ...
-                "AMICA final component update norms contain non-finite values."; %#ok<AGROW>
+                "AMICA final component update norms contain non-finite values.";
         else
             qc.final_update_norm_median = median(final_nd);
             qc.final_update_norm_max = max(final_nd);
@@ -8601,116 +8579,116 @@ qc.extreme_metrics_required_to_fail = ...
 
 if logical(step_cfg.signal_qc_fail_on_nonfinite) && qc.nonfinite_before > 0
     structural_failure_codes(end+1, 1) = ...
-        "NONFINITE_SIGNAL_BEFORE"; %#ok<AGROW>
+        "NONFINITE_SIGNAL_BEFORE";
     structural_failure_reasons(end+1, 1) = sprintf( ...
         'The pre-rejection signal contains %d non-finite values.', ...
-        qc.nonfinite_before); %#ok<AGROW>
+        qc.nonfinite_before);
 end
 if logical(step_cfg.signal_qc_fail_on_nonfinite) && qc.nonfinite_after > 0
     structural_failure_codes(end+1, 1) = ...
-        "NONFINITE_SIGNAL_AFTER"; %#ok<AGROW>
+        "NONFINITE_SIGNAL_AFTER";
     structural_failure_reasons(end+1, 1) = sprintf( ...
         'The post-rejection signal contains %d non-finite values.', ...
-        qc.nonfinite_after); %#ok<AGROW>
+        qc.nonfinite_after);
 end
 if logical(step_cfg.signal_qc_fail_on_flat_channels) && ...
         qc.flat_channels_before > 0
-    warning_codes(end+1, 1) = "FLAT_CHANNELS_BEFORE"; %#ok<AGROW>
+    warning_codes(end+1, 1) = "FLAT_CHANNELS_BEFORE";
     warning_reasons(end+1, 1) = sprintf( ...
         'The pre-rejection signal has %d flat checked channel(s).', ...
-        qc.flat_channels_before); %#ok<AGROW>
+        qc.flat_channels_before);
 end
 if logical(step_cfg.signal_qc_fail_on_flat_channels) && ...
         qc.flat_channels_after > qc.flat_channels_before
-    extreme_codes(end+1, 1) = "NEW_FLAT_CHANNELS_AFTER"; %#ok<AGROW>
-    extreme_group_codes(end+1, 1) = "FLAT_CHANNEL_CREATION"; %#ok<AGROW>
+    extreme_codes(end+1, 1) = "NEW_FLAT_CHANNELS_AFTER";
+    extreme_group_codes(end+1, 1) = "FLAT_CHANNEL_CREATION";
     extreme_reasons(end+1, 1) = sprintf( ...
         ['IC removal increased the number of flat checked channels from ' ...
          '%d to %d.'], qc.flat_channels_before, ...
-        qc.flat_channels_after); %#ok<AGROW>
+        qc.flat_channels_after);
 end
 if n_removed / n_ic >= step_cfg.signal_qc_max_prop_ic_removed
-    extreme_codes(end+1, 1) = "TOO_MANY_ICS_REMOVED"; %#ok<AGROW>
-    extreme_group_codes(end+1, 1) = "EXTREME_IC_REJECTION"; %#ok<AGROW>
+    extreme_codes(end+1, 1) = "TOO_MANY_ICS_REMOVED";
+    extreme_group_codes(end+1, 1) = "EXTREME_IC_REJECTION";
     extreme_reasons(end+1, 1) = sprintf( ...
         ['Removed IC proportion %.3f meets or exceeds the configured extreme ' ...
          'threshold %.3f.'], ...
-        n_removed / n_ic, step_cfg.signal_qc_max_prop_ic_removed); %#ok<AGROW>
+        n_removed / n_ic, step_cfg.signal_qc_max_prop_ic_removed);
 end
 if n_remaining < step_cfg.signal_qc_min_remaining_components
-    extreme_codes(end+1, 1) = "TOO_FEW_ICS_REMAIN"; %#ok<AGROW>
-    extreme_group_codes(end+1, 1) = "EXTREME_IC_REJECTION"; %#ok<AGROW>
+    extreme_codes(end+1, 1) = "TOO_FEW_ICS_REMAIN";
+    extreme_group_codes(end+1, 1) = "EXTREME_IC_REJECTION";
     extreme_reasons(end+1, 1) = sprintf( ...
         '%d ICs remain; the configured minimum is %d.', ...
-        n_remaining, step_cfg.signal_qc_min_remaining_components); %#ok<AGROW>
+        n_remaining, step_cfg.signal_qc_min_remaining_components);
 end
 if ~isfinite(qc.median_channel_correlation)
     structural_failure_codes(end+1, 1) = ...
-        "CORRELATION_NOT_COMPUTABLE"; %#ok<AGROW>
+        "CORRELATION_NOT_COMPUTABLE";
     structural_failure_reasons(end+1, 1) = sprintf( ...
-        'Median channel correlation could not be computed.'); %#ok<AGROW>
+        'Median channel correlation could not be computed.');
 elseif qc.median_channel_correlation <= ...
         step_cfg.signal_qc_hard_min_median_channel_correlation
     extreme_codes(end+1, 1) = ...
-        "EXTREME_LOW_PRE_POST_CORRELATION"; %#ok<AGROW>
-    extreme_group_codes(end+1, 1) = "EXTREME_SIGNAL_SHAPE"; %#ok<AGROW>
+        "EXTREME_LOW_PRE_POST_CORRELATION";
+    extreme_group_codes(end+1, 1) = "EXTREME_SIGNAL_SHAPE";
     extreme_reasons(end+1, 1) = sprintf( ...
         ['Median channel correlation %.3f is at or below the configured extreme ' ...
          'threshold %.3f.'], qc.median_channel_correlation, ...
-        step_cfg.signal_qc_hard_min_median_channel_correlation); %#ok<AGROW>
+        step_cfg.signal_qc_hard_min_median_channel_correlation);
 elseif qc.median_channel_correlation < ...
         step_cfg.signal_qc_min_median_channel_correlation
-    warning_codes(end+1, 1) = "LOW_PRE_POST_CORRELATION"; %#ok<AGROW>
+    warning_codes(end+1, 1) = "LOW_PRE_POST_CORRELATION";
     warning_reasons(end+1, 1) = sprintf( ...
         ['Median channel correlation %.3f is below the warning minimum ' ...
          '%.3f.'], qc.median_channel_correlation, ...
-        step_cfg.signal_qc_min_median_channel_correlation); %#ok<AGROW>
+        step_cfg.signal_qc_min_median_channel_correlation);
 end
 
 if ~isfinite(qc.relative_change_rms)
     structural_failure_codes(end+1, 1) = ...
-        "RELATIVE_RMS_CHANGE_NOT_FINITE"; %#ok<AGROW>
+        "RELATIVE_RMS_CHANGE_NOT_FINITE";
     structural_failure_reasons(end+1, 1) = sprintf( ...
-        'Relative change RMS is not finite.'); %#ok<AGROW>
+        'Relative change RMS is not finite.');
 elseif qc.relative_change_rms >= ...
         step_cfg.signal_qc_hard_max_relative_change_rms
     extreme_codes(end+1, 1) = ...
-        "EXTREME_RELATIVE_SIGNAL_CHANGE"; %#ok<AGROW>
-    extreme_group_codes(end+1, 1) = "EXTREME_SIGNAL_SCALE"; %#ok<AGROW>
+        "EXTREME_RELATIVE_SIGNAL_CHANGE";
+    extreme_group_codes(end+1, 1) = "EXTREME_SIGNAL_SCALE";
     extreme_reasons(end+1, 1) = sprintf( ...
         ['Relative change RMS %.3f meets or exceeds the configured extreme ' ...
          'threshold %.3f.'], qc.relative_change_rms, ...
-        step_cfg.signal_qc_hard_max_relative_change_rms); %#ok<AGROW>
+        step_cfg.signal_qc_hard_max_relative_change_rms);
 elseif qc.relative_change_rms > step_cfg.signal_qc_max_relative_change_rms
-    warning_codes(end+1, 1) = "EXCESSIVE_RELATIVE_SIGNAL_CHANGE"; %#ok<AGROW>
+    warning_codes(end+1, 1) = "EXCESSIVE_RELATIVE_SIGNAL_CHANGE";
     warning_reasons(end+1, 1) = sprintf( ...
-        ['Relative change RMS %.3f exceeds the warning maximum %.3f.'], ...
+        'Relative change RMS %.3f exceeds the warning maximum %.3f.', ...
         qc.relative_change_rms, ...
-        step_cfg.signal_qc_max_relative_change_rms); %#ok<AGROW>
+        step_cfg.signal_qc_max_relative_change_rms); 
 end
 
 if ~isfinite(qc.rms_ratio)
     structural_failure_codes(end+1, 1) = ...
-        "RMS_RATIO_NOT_FINITE"; %#ok<AGROW>
+        "RMS_RATIO_NOT_FINITE";
     structural_failure_reasons(end+1, 1) = sprintf( ...
-        'Post/pre RMS ratio is not finite.'); %#ok<AGROW>
+        'Post/pre RMS ratio is not finite.');
 elseif qc.rms_ratio <= step_cfg.signal_qc_hard_min_rms_ratio || ...
         qc.rms_ratio >= step_cfg.signal_qc_hard_max_rms_ratio
-    extreme_codes(end+1, 1) = "EXTREME_RMS_RATIO"; %#ok<AGROW>
-    extreme_group_codes(end+1, 1) = "EXTREME_SIGNAL_SCALE"; %#ok<AGROW>
+    extreme_codes(end+1, 1) = "EXTREME_RMS_RATIO";
+    extreme_group_codes(end+1, 1) = "EXTREME_SIGNAL_SCALE";
     extreme_reasons(end+1, 1) = sprintf( ...
         ['Post/pre RMS ratio %.3f is at or outside the configured extreme ' ...
          'interval [%.3f, %.3f].'], qc.rms_ratio, ...
         step_cfg.signal_qc_hard_min_rms_ratio, ...
-        step_cfg.signal_qc_hard_max_rms_ratio); %#ok<AGROW>
+        step_cfg.signal_qc_hard_max_rms_ratio);
 elseif qc.rms_ratio < step_cfg.signal_qc_min_rms_ratio || ...
         qc.rms_ratio > step_cfg.signal_qc_max_rms_ratio
-    warning_codes(end+1, 1) = "RMS_RATIO_OUT_OF_RANGE"; %#ok<AGROW>
+    warning_codes(end+1, 1) = "RMS_RATIO_OUT_OF_RANGE";
     warning_reasons(end+1, 1) = sprintf( ...
         ['Post/pre RMS ratio %.3f is outside the warning interval ' ...
          '[%.3f, %.3f].'], qc.rms_ratio, ...
         step_cfg.signal_qc_min_rms_ratio, ...
-        step_cfg.signal_qc_max_rms_ratio); %#ok<AGROW>
+        step_cfg.signal_qc_max_rms_ratio);
 end
 
 structural_failure_codes = unique(structural_failure_codes, 'stable');
@@ -8802,7 +8780,7 @@ if ~isempty(failure_codes)
 else
     qc.status = "warning";
     qc.decision = "accept_with_warning";
-    if numel(warning_codes) == 1 && ...
+    if isscalar(warning_codes) && ...
             warning_codes == "FLAT_CHANNELS_BEFORE"
         qc.recommended_action = ...
             ['The cleaned dataset was retained. The flat channel already ' ...
@@ -9221,7 +9199,7 @@ end
 
 t_by_method = table();
 t_pair = table();
-t_overview = table();
+
 overview_path = "";
 
 if ~isempty(t_all)

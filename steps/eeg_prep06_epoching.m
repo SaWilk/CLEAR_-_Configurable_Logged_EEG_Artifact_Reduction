@@ -489,7 +489,7 @@ try
         helpers.write_qc_table(summary_rows, subject_summary_path, ...
             step_cfg.qc_table_delimiter);
 
-        summary_files{end+1} = subject_summary_path; %#ok<AGROW>
+        summary_files{end+1} = subject_summary_path; 
     end
 
     % Fixed final part of Step 06: refresh the all-subject summaries from
